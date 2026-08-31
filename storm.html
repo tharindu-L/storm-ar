@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>STORM — Environmental & Seismic AR</title>
+
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <!-- AR.js for A-Frame (marker-based) -->
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #000;
+      color: #00ff88;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* ── HUD Overlay ── */
+    #hud {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    #hud-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.75);
+      border-bottom: 1px solid #00ff8844;
+      padding: 8px 14px;
+      pointer-events: all;
+    }
+
+    #hud-title {
+      font-size: 13px;
+      letter-spacing: 3px;
+      color: #00ff88;
+      text-transform: uppercase;
+    }
+
+    #mode-toggle {
+      background: #00ff8822;
+      border: 1px solid #00ff88;
+      color: #00ff88;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 5px 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.2s;
+    }
+    #mode-toggle:hover { background: #00ff8844; }
+
+    #data-panel {
+      display: flex;
+      gap: 10px;
+      padding: 8px 14px;
+      background: rgba(0, 0, 0, 0.6);
+      border-bottom: 1px solid #00ff8822;
+      flex-wrap: wrap;
+      pointer-events: none;
+    }
+
+    .data-card {
+      background: rgba(0, 255, 136, 0.05);
+      border: 1px solid #00ff8833;
+      padding: 6px 10px;
+      min-width: 120px;
+      flex: 1;
+    }
+
+    .data-card .label {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: #00ff8899;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .data-card .value {
+      font-size: 14px;
+      color: #00ff88;
+    }
+
+    .data-card .sub {
+      font-size: 10px;
+      color: #00ff8877;
+      margin-top: 2px;
+    }
+
+    /* status dot */
+    #status-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #00ff88;
+      margin-right: 6px;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    #mode-label {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      border: 1px solid #00ff8844;
+      color: #00ff8899;
+      font-size: 10px;
+      letter-spacing: 2px;
+      padding: 5px 14px;
+      text-transform: uppercase;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    #last-update {
+      position: fixed;
+      bottom: 56px;
+      right: 14px;
+      font-size: 9px;
+      color: #00ff8855;
+      z-index: 9999;
+      letter-spacing: 1px;
+    }
+
+    /* ── Scenes ── */
+    #scene-marker, #scene-markerless {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+
+    #scene-markerless { display: none; }
+
+    /* markerless tap hint */
+    #tap-hint {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.65);
+      border: 1px solid #00ff8844;
+      color: #00ff88aa;
+      font-size: 10px;
+      letter-spacing: 2px;
+      padding: 5px 14px;
+      z-index: 9999;
+      display: none;
+      text-transform: uppercase;
+    }
+
+    /* quake legend */
+    #quake-legend {
+      position: fixed;
+      top: 110px;
+      right: 14px;
+      background: rgba(0,0,0,0.7);
+      border: 1px solid #00ff8833;
+      padding: 8px 12px;
+      z-index: 9999;
+      display: none;
+      pointer-events: none;
+    }
+    #quake-legend .leg-title {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: #00ff8888;
+      margin-bottom: 6px;
+    }
+    .leg-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9px;
+      color: #00ff8877;
+      margin-bottom: 3px;
+    }
+    .leg-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     HUD
+═══════════════════════════════════════════ -->
+<div id="hud">
+  <div id="hud-bar">
+    <span id="hud-title">
+      <span id="status-dot"></span>STORM v1.0
+    </span>
+    <button id="mode-toggle" onclick="toggleMode()">⇄ QUAKE-GRID</button>
+  </div>
+  <div id="data-panel">
+    <div class="data-card" id="card-weather">
+      <div class="label">Weather</div>
+      <div class="value" id="w-temp">—°C</div>
+      <div class="sub" id="w-cond">Fetching…</div>
+    </div>
+    <div class="data-card" id="card-wind">
+      <div class="label">Wind</div>
+      <div class="value" id="w-wind">— km/h</div>
+      <div class="sub" id="w-dir">—</div>
+    </div>
+    <div class="data-card" id="card-quake">
+      <div class="label">Latest Quake</div>
+      <div class="value" id="q-mag">M —</div>
+      <div class="sub" id="q-place">Fetching…</div>
+    </div>
+    <div class="data-card" id="card-quake2">
+      <div class="label">Depth / Count</div>
+      <div class="value" id="q-depth">— km</div>
+      <div class="sub" id="q-count">— events (24h)</div>
+    </div>
+  </div>
+</div>
+
+<div id="mode-label">MODE: WEATHER-GLOBE — AIM AT HIRO MARKER</div>
+<div id="last-update">LAST UPDATE: —</div>
+<div id="tap-hint">TAP SURFACE TO ANCHOR QUAKE-GRID</div>
+
+<div id="quake-legend">
+  <div class="leg-title">DEPTH COLOUR</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#00ff44"></div>&lt; 30 km (shallow)</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#ffaa00"></div>30–70 km (mid)</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#ff3300"></div>&gt; 70 km (deep)</div>
+  <div class="leg-title" style="margin-top:6px">SPHERE SIZE</div>
+  <div class="leg-row">radius = magnitude × 0.04</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCENE A — MARKER-BASED (weather-globe)
+     Uses AR.js + A-Frame marker tracking.
+     Anchor: Hiro marker.
+═══════════════════════════════════════════ -->
+<a-scene
+  id="scene-marker"
+  embedded
+  arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+  vr-mode-ui="enabled: false"
+  renderer="logarithmicDepthBuffer: true; colorManagement: true;"
+  loading-screen="enabled: false"
+>
+  <a-assets>
+    <!-- Inline geometries only; no external model files needed -->
+  </a-assets>
+
+  <!-- Hiro marker anchor -->
+  <a-marker preset="hiro" id="hiro-marker">
+    <!-- weather-globe root — rebuilt by JS on each data refresh -->
+    <a-entity id="weather-globe-root" position="0 0.5 0" scale="0.5 0.5 0.5">
+
+      <!-- SUN group (default visible) -->
+      <a-entity id="wg-sun" visible="true">
+        <!-- core sphere -->
+        <a-sphere color="#FFD700" radius="0.35" material="emissive:#FFD700; emissiveIntensity:0.4; metalness:0; roughness:0.6"></a-sphere>
+        <!-- corona rays (8 thin boxes) -->
+        <a-box id="ray0"  color="#FFD700" width="0.04" height="0.7" depth="0.04" position="0 0 0" rotation="0 0 0"    material="emissive:#FFD700;emissiveIntensity:0.5"></a-box>
+        <a-box id="ray1"  color="#FFD700" width="0.04" height="0.7" depth="0.04" position="0 0 0" rotation="0 0 45"   material="emissive:#FFD700;emissiveIntensity:0.5"></a-box>
+        <a-box id="ray2"  color="#FFD700" width="0.04" height="0.7" depth="0.04" position="0 0 0" rotation="0 0 90"   material="emissive:#FFD700;emissiveIntensity:0.5"></a-box>
+        <a-box id="ray3"  color="#FFD700" width="0.04" height="0.7" depth="0.04" position="0 0 0" rotation="0 0 135"  material="emissive:#FFD700;emissiveIntensity:0.5"></a-box>
+        <!-- slow rotation animation -->
+        <a-animation attribute="rotation" to="0 360 0" dur="12000" repeat="indefinite" easing="linear"></a-animation>
+      </a-entity>
+
+      <!-- CLOUD group -->
+      <a-entity id="wg-cloud" visible="false">
+        <a-sphere color="#cccccc" radius="0.28" position="0 0 0"      material="emissive:#aaaaaa;emissiveIntensity:0.1"></a-sphere>
+        <a-sphere color="#dddddd" radius="0.22" position="0.22 -0.06 0" material="emissive:#aaaaaa;emissiveIntensity:0.1"></a-sphere>
+        <a-sphere color="#dddddd" radius="0.20" position="-0.2 -0.06 0" material="emissive:#aaaaaa;emissiveIntensity:0.1"></a-sphere>
+        <a-sphere color="#bbbbbb" radius="0.14" position="0 -0.2 0"    material="emissive:#aaaaaa;emissiveIntensity:0.1"></a-sphere>
+        <!-- gentle float -->
+        <a-animation attribute="position" from="0 0 0" to="0 0.08 0" dur="2500" direction="alternate" repeat="indefinite" easing="easeInOutSine"></a-animation>
+      </a-entity>
+
+      <!-- RAIN group -->
+      <a-entity id="wg-rain" visible="false">
+        <!-- cloud body -->
+        <a-sphere color="#888888" radius="0.28" position="0 0.1 0"   material="emissive:#555555;emissiveIntensity:0.1"></a-sphere>
+        <a-sphere color="#999999" radius="0.22" position="0.2 0.05 0" material="emissive:#555555;emissiveIntensity:0.1"></a-sphere>
+        <a-sphere color="#999999" radius="0.20" position="-0.18 0.05 0" material="emissive:#555555;emissiveIntensity:0.1"></a-sphere>
+        <!-- raindrops (capsule-like thin boxes) -->
+        <a-box color="#4488ff" width="0.025" height="0.14" depth="0.025" position="-0.12 -0.22 0" material="emissive:#2255cc;emissiveIntensity:0.5">
+          <a-animation attribute="position" from="-0.12 -0.1 0" to="-0.12 -0.38 0" dur="900" repeat="indefinite" easing="linear"></a-animation>
+        </a-box>
+        <a-box color="#4488ff" width="0.025" height="0.14" depth="0.025" position="0 -0.22 0" material="emissive:#2255cc;emissiveIntensity:0.5">
+          <a-animation attribute="position" from="0 -0.1 0" to="0 -0.38 0" dur="900" delay="300" repeat="indefinite" easing="linear"></a-animation>
+        </a-box>
+        <a-box color="#4488ff" width="0.025" height="0.14" depth="0.025" position="0.12 -0.22 0" material="emissive:#2255cc;emissiveIntensity:0.5">
+          <a-animation attribute="position" from="0.12 -0.1 0" to="0.12 -0.38 0" dur="900" delay="600" repeat="indefinite" easing="linear"></a-animation>
+        </a-box>
+      </a-entity>
+
+      <!-- Temperature label -->
+      <a-text
+        id="wg-temp-label"
+        value="—°C"
+        align="center"
+        color="#ffffff"
+        width="3"
+        position="0 -0.6 0"
+        material="emissive:#ffffff;emissiveIntensity:0.5"
+      ></a-text>
+
+      <!-- Condition label -->
+      <a-text
+        id="wg-cond-label"
+        value="LOADING"
+        align="center"
+        color="#aaffcc"
+        width="2.2"
+        position="0 -0.9 0"
+      ></a-text>
+    </a-entity>
+  </a-marker>
+
+  <a-entity camera></a-entity>
+</a-scene>
+
+<!-- ══════════════════════════════════════════
+     SCENE B — MARKERLESS (quake-grid)
+     Uses standard A-Frame + WebXR hit-test.
+     Falls back to fixed-plane on non-WebXR.
+═══════════════════════════════════════════ -->
+<a-scene
+  id="scene-markerless"
+  webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #hud;"
+  renderer="colorManagement: true;"
+  vr-mode-ui="enabled: false"
+  loading-screen="enabled: false"
+>
+  <a-entity id="quake-grid-root" visible="false" position="0 0 -2">
+    <!-- Grid lines and quake spheres injected by JS -->
+  </a-entity>
+
+  <!-- Reticle for hit-test placement -->
+  <a-entity id="reticle" visible="false">
+    <a-ring
+      color="#00ff88"
+      radius-inner="0.04"
+      radius-outer="0.06"
+      rotation="-90 0 0"
+      material="side: double; emissive:#00ff88; emissiveIntensity:0.6"
+    ></a-ring>
+  </a-entity>
+
+  <a-entity camera look-controls="enabled:false" wasd-controls="enabled:false"></a-entity>
+  <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
+  <a-light type="directional" color="#ffffff" intensity="0.8" position="1 3 1"></a-light>
+</a-scene>
+
+<!-- ══════════════════════════════════════════
+     STORM — Core Logic
+═══════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── Config ──────────────────────────────────────────────────────────────────
+const CFG = {
+  // Open-Meteo: Colombo, Sri Lanka as default field location
+  // Researchers can modify lat/lon at runtime via URL params
+  weatherLat:  parseFloat(new URLSearchParams(location.search).get('lat')  ?? '6.9271'),
+  weatherLon:  parseFloat(new URLSearchParams(location.search).get('lon')  ?? '79.8612'),
+  weatherCity: new URLSearchParams(location.search).get('city') ?? 'Colombo',
+
+  // USGS last 24h M1.0+ worldwide
+  usgsUrl: 'https://earthquake.usgs.gov/fdsnservices/event/query.json' +
+            '?format=geojson&starttime=NOW-24hours&minmagnitude=1.0' +
+            '&orderby=time&limit=25',
+
+  openMeteoUrl(lat, lon) {
+    return `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+           `&current=temperature_2m,weathercode,windspeed_10m,winddirection_10m&timezone=auto`;
+  },
+
+  updateIntervalMs: 30_000,
+
+  // quake-grid layout
+  gridCols: 5,
+  gridRows: 5,
+  cellSize: 0.3,          // metres per cell
+  sphereScale: 0.04,      // radius = magnitude * scale
+  depthShallow: 30,       // km
+  depthMid:     70,
+};
+
+// ── State ────────────────────────────────────────────────────────────────────
+const STATE = {
+  mode: 'marker',         // 'marker' | 'markerless'
+  weather: null,
+  quakes: [],
+  gridAnchored: false,
+  xrSession: null,
+  xrHitTestSource: null,
+  xrRefSpace: null,
+  reticlePose: null,
+};
+
+// ── WMO weather-code → condition string ──────────────────────────────────────
+const WMO_CODES = {
+  0: 'CLEAR SKY', 1: 'MAINLY CLEAR', 2: 'PARTLY CLOUDY', 3: 'OVERCAST',
+  45: 'FOGGY', 48: 'RIME FOG',
+  51: 'LIGHT DRIZZLE', 53: 'DRIZZLE', 55: 'HEAVY DRIZZLE',
+  61: 'LIGHT RAIN', 63: 'RAIN', 65: 'HEAVY RAIN',
+  71: 'LIGHT SNOW', 73: 'SNOW', 75: 'HEAVY SNOW', 77: 'SNOW GRAINS',
+  80: 'LIGHT SHOWERS', 81: 'SHOWERS', 82: 'HEAVY SHOWERS',
+  85: 'SNOW SHOWERS', 86: 'HEAVY SNOW SHOWERS',
+  95: 'THUNDERSTORM', 96: 'TSTORM + HAIL', 99: 'TSTORM + HEAVY HAIL',
+};
+
+function wmoToIcon(code) {
+  if (code === 0 || code === 1)            return 'sun';
+  if (code >= 2  && code <= 48)            return 'cloud';
+  return 'rain';
+}
+
+function wmoToString(code) {
+  return WMO_CODES[code] ?? `CODE ${code}`;
+}
+
+// Wind direction degrees → compass
+function degToCompass(deg) {
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+// ── Data Fetch ───────────────────────────────────────────────────────────────
+async function fetchWeather() {
+  try {
+    const url = CFG.openMeteoUrl(CFG.weatherLat, CFG.weatherLon);
+    const res  = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const cur  = json.current;
+    STATE.weather = {
+      temp:      Math.round(cur.temperature_2m),
+      code:      cur.weathercode,
+      wind:      Math.round(cur.windspeed_10m),
+      windDir:   Math.round(cur.winddirection_10m),
+    };
+    updateWeatherHUD();
+    updateWeatherGlobe();
+  } catch (err) {
+    console.error('[STORM] Weather fetch failed:', err.message);
+    document.getElementById('w-cond').textContent = 'FETCH ERROR';
+  }
+}
+
+async function fetchQuakes() {
+  try {
+    const res  = await fetch(CFG.usgsUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    STATE.quakes = (json.features ?? []).slice(0, CFG.gridCols * CFG.gridRows);
+    updateQuakeHUD();
+    if (STATE.gridAnchored) buildQuakeGrid();
+  } catch (err) {
+    console.error('[STORM] Quake fetch failed:', err.message);
+    document.getElementById('q-place').textContent = 'FETCH ERROR';
+  }
+}
+
+async function fetchAll() {
+  await Promise.all([fetchWeather(), fetchQuakes()]);
+  const now = new Date();
+  document.getElementById('last-update').textContent =
+    `LAST UPDATE: ${now.toLocaleTimeString()}`;
+}
+
+// ── HUD Updates ──────────────────────────────────────────────────────────────
+function updateWeatherHUD() {
+  const w = STATE.weather;
+  if (!w) return;
+  document.getElementById('w-temp').textContent  = `${w.temp}°C`;
+  document.getElementById('w-cond').textContent  = `${wmoToString(w.code)} · ${CFG.weatherCity.toUpperCase()}`;
+  document.getElementById('w-wind').textContent  = `${w.wind} km/h`;
+  document.getElementById('w-dir').textContent   = degToCompass(w.windDir);
+}
+
+function updateQuakeHUD() {
+  if (!STATE.quakes.length) return;
+  const latest = STATE.quakes[0].properties;
+  document.getElementById('q-mag').textContent   = `M ${latest.mag.toFixed(1)}`;
+  document.getElementById('q-place').textContent = (latest.place ?? 'Unknown').substring(0, 28);
+  document.getElementById('q-depth').textContent = `${Math.round(STATE.quakes[0].geometry.coordinates[2])} km`;
+  document.getElementById('q-count').textContent = `${STATE.quakes.length} events (24h)`;
+}
+
+// ── weather-globe 3D update ──────────────────────────────────────────────────
+function updateWeatherGlobe() {
+  const w = STATE.weather;
+  if (!w) return;
+  const icon = wmoToIcon(w.code);
+
+  document.getElementById('wg-sun').setAttribute('visible',   icon === 'sun');
+  document.getElementById('wg-cloud').setAttribute('visible', icon === 'cloud');
+  document.getElementById('wg-rain').setAttribute('visible',  icon === 'rain');
+
+  document.getElementById('wg-temp-label').setAttribute('value', `${w.temp}°C`);
+  document.getElementById('wg-cond-label').setAttribute('value', wmoToString(w.code));
+}
+
+// ── quake-grid 3D build ──────────────────────────────────────────────────────
+function depthColor(depth) {
+  if (depth < CFG.depthShallow) return '#00ff44';
+  if (depth < CFG.depthMid)     return '#ffaa00';
+  return '#ff3300';
+}
+
+function buildQuakeGrid() {
+  const root = document.getElementById('quake-grid-root');
+  // Clear previous children
+  while (root.firstChild) root.removeChild(root.firstChild);
+
+  const cols = CFG.gridCols;
+  const rows = CFG.gridRows;
+  const cs   = CFG.cellSize;
+  const w    = cols * cs;
+  const h    = rows * cs;
+  const ox   = -w / 2 + cs / 2;
+  const oz   = -h / 2 + cs / 2;
+
+  // ── Grid lines ──
+  for (let i = 0; i <= cols; i++) {
+    const x = -w / 2 + i * cs;
+    const line = document.createElement('a-box');
+    line.setAttribute('color',    '#00ff8833');
+    line.setAttribute('opacity',  '0.4');
+    line.setAttribute('width',    '0.005');
+    line.setAttribute('height',   '0.005');
+    line.setAttribute('depth',    `${h}`);
+    line.setAttribute('position', `${x} 0 0`);
+    line.setAttribute('material', 'emissive:#00ff88;emissiveIntensity:0.3;opacity:0.5;transparent:true');
+    root.appendChild(line);
+  }
+  for (let j = 0; j <= rows; j++) {
+    const z = -h / 2 + j * cs;
+    const line = document.createElement('a-box');
+    line.setAttribute('color',    '#00ff8833');
+    line.setAttribute('width',    `${w}`);
+    line.setAttribute('height',   '0.005');
+    line.setAttribute('depth',    '0.005');
+    line.setAttribute('position', `0 0 ${z}`);
+    line.setAttribute('material', 'emissive:#00ff88;emissiveIntensity:0.3;opacity:0.5;transparent:true');
+    root.appendChild(line);
+  }
+
+  // ── Floor plane (semi-transparent) ──
+  const floor = document.createElement('a-plane');
+  floor.setAttribute('rotation',  '-90 0 0');
+  floor.setAttribute('width',     `${w}`);
+  floor.setAttribute('height',    `${h}`);
+  floor.setAttribute('color',     '#001a0d');
+  floor.setAttribute('material',  'opacity:0.35;transparent:true;side:double');
+  floor.setAttribute('position',  '0 -0.002 0');
+  root.appendChild(floor);
+
+  // ── Earthquake spheres ──
+  STATE.quakes.forEach((feature, idx) => {
+    const props = feature.properties;
+    const geo   = feature.geometry.coordinates; // [lon, lat, depth]
+    const mag   = props.mag   ?? 1;
+    const depth = geo[2]      ?? 10;
+    const place = (props.place ?? 'Unknown').substring(0, 20);
+
+    const col = Math.floor(idx % cols);
+    const row = Math.floor(idx / cols);
+    if (row >= rows) return;
+
+    const cx = ox + col * cs;
+    const cz = oz + row * cs;
+    const r  = Math.max(0.015, mag * CFG.sphereScale);
+
+    const sphere = document.createElement('a-sphere');
+    sphere.setAttribute('radius',   `${r}`);
+    sphere.setAttribute('position', `${cx} ${r} ${cz}`);
+    sphere.setAttribute('color',    depthColor(depth));
+    sphere.setAttribute('material',
+      `emissive:${depthColor(depth)};emissiveIntensity:0.45;metalness:0.2;roughness:0.5`);
+
+    // pulse animation — larger quakes pulse slower
+    const pulseDur = Math.max(600, 2000 - mag * 150);
+    sphere.innerHTML = `
+      <a-animation attribute="scale"
+        from="1 1 1" to="1.18 1.18 1.18"
+        dur="${pulseDur}"
+        direction="alternate"
+        repeat="indefinite"
+        easing="easeInOutSine">
+      </a-animation>`;
+
+    // label
+    const label = document.createElement('a-text');
+    label.setAttribute('value',    `M${mag.toFixed(1)}\n${Math.round(depth)}km`);
+    label.setAttribute('align',    'center');
+    label.setAttribute('color',    '#ffffff');
+    label.setAttribute('width',    '0.6');
+    label.setAttribute('position', `0 ${r * 2 + 0.04} 0`);
+    label.setAttribute('look-at',  '[camera]');
+    sphere.appendChild(label);
+
+    root.appendChild(sphere);
+  });
+
+  root.setAttribute('visible', 'true');
+}
+
+// ── Mode Toggle ──────────────────────────────────────────────────────────────
+function toggleMode() {
+  if (STATE.mode === 'marker') {
+    setMode('markerless');
+  } else {
+    setMode('marker');
+  }
+}
+
+function setMode(mode) {
+  STATE.mode = mode;
+  const sceneMarker      = document.getElementById('scene-marker');
+  const sceneMarkerless  = document.getElementById('scene-markerless');
+  const modeLabel        = document.getElementById('mode-label');
+  const toggleBtn        = document.getElementById('mode-toggle');
+  const tapHint          = document.getElementById('tap-hint');
+  const legend           = document.getElementById('quake-legend');
+
+  if (mode === 'marker') {
+    sceneMarker.style.display     = '';
+    sceneMarkerless.style.display = 'none';
+    modeLabel.textContent         = 'MODE: WEATHER-GLOBE — AIM AT HIRO MARKER';
+    toggleBtn.textContent         = '⇄ QUAKE-GRID';
+    tapHint.style.display         = 'none';
+    legend.style.display          = 'none';
+    STATE.gridAnchored            = false;
+
+    // Exit WebXR session if active
+    if (STATE.xrSession) {
+      STATE.xrSession.end().catch(() => {});
+      STATE.xrSession = null;
+    }
+  } else {
+    sceneMarker.style.display     = 'none';
+    sceneMarkerless.style.display = '';
+    modeLabel.textContent         = 'MODE: QUAKE-GRID — TAP TO ANCHOR';
+    toggleBtn.textContent         = '⇄ WEATHER-GLOBE';
+    tapHint.style.display         = 'block';
+    legend.style.display          = 'block';
+
+    initMarkerless();
+  }
+}
+
+// ── Markerless — WebXR hit-test ──────────────────────────────────────────────
+function initMarkerless() {
+  const sceneEl = document.getElementById('scene-markerless');
+
+  // Wait for scene to be ready
+  if (!sceneEl.hasLoaded) {
+    sceneEl.addEventListener('loaded', startXR, { once: true });
+  } else {
+    startXR();
+  }
+}
+
+function startXR() {
+  if (!navigator.xr) {
+    fallbackMarkerless();
+    return;
+  }
+
+  navigator.xr.isSessionSupported('immersive-ar').then(supported => {
+    if (!supported) { fallbackMarkerless(); return; }
+
+    navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test', 'local-floor'],
+    }).then(session => {
+      STATE.xrSession = session;
+      const sceneEl  = document.getElementById('scene-markerless');
+      const renderer = sceneEl.renderer;
+
+      renderer.xr.enabled = true;
+      renderer.xr.setSession(session);
+
+      session.requestReferenceSpace('local-floor').then(refSpace => {
+        STATE.xrRefSpace = refSpace;
+
+        session.requestHitTestSource({ space: refSpace }).then(src => {
+          STATE.xrHitTestSource = src;
+        });
+      });
+
+      session.addEventListener('end', () => {
+        STATE.xrSession       = null;
+        STATE.xrHitTestSource = null;
+      });
+
+      renderer.setAnimationLoop((time, frame) => {
+        if (!frame) return;
+        handleXRFrame(frame);
+        renderer.render(sceneEl.object3D, sceneEl.camera);
+      });
+
+      sceneEl.canvas.addEventListener('click', onMarkerlessTap);
+
+    }).catch(err => {
+      console.warn('[STORM] XR session failed:', err.message);
+      fallbackMarkerless();
+    });
+  });
+}
+
+function handleXRFrame(frame) {
+  if (!STATE.xrHitTestSource || !STATE.xrRefSpace) return;
+
+  const hits     = frame.getHitTestResults(STATE.xrHitTestSource);
+  const reticle  = document.getElementById('reticle');
+
+  if (hits.length > 0) {
+    const pose = hits[0].getPose(STATE.xrRefSpace);
+    if (pose) {
+      STATE.reticlePose = pose;
+      const p = pose.transform.position;
+      reticle.setAttribute('position', `${p.x} ${p.y} ${p.z}`);
+      reticle.setAttribute('visible', 'true');
+    }
+  } else {
+    reticle.setAttribute('visible', 'false');
+    STATE.reticlePose = null;
+  }
+}
+
+function onMarkerlessTap() {
+  if (!STATE.reticlePose) return;
+  const p = STATE.reticlePose.transform.position;
+  const root = document.getElementById('quake-grid-root');
+  root.setAttribute('position', `${p.x} ${p.y} ${p.z}`);
+  STATE.gridAnchored = true;
+  buildQuakeGrid();
+  document.getElementById('tap-hint').style.display  = 'none';
+  document.getElementById('mode-label').textContent  = 'MODE: QUAKE-GRID — ANCHORED';
+}
+
+// ── Fallback: no WebXR — place grid at fixed world position ─────────────────
+function fallbackMarkerless() {
+  console.info('[STORM] WebXR not available — using fixed-plane fallback');
+
+  const root = document.getElementById('quake-grid-root');
+  root.setAttribute('position', '0 -1 -2.5');
+  root.setAttribute('rotation', '0 0 0');
+  STATE.gridAnchored = true;
+  buildQuakeGrid();
+
+  document.getElementById('tap-hint').textContent  = 'WEBXR UNAVAILABLE — FIXED PLANE';
+  document.getElementById('tap-hint').style.display = 'block';
+  document.getElementById('mode-label').textContent = 'MODE: QUAKE-GRID — FIXED PLANE';
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+(function boot() {
+  // Initial fetch
+  fetchAll();
+
+  // Polling every 30s
+  setInterval(fetchAll, CFG.updateIntervalMs);
+
+  // Start in marker mode
+  setMode('marker');
+
+  // A-Frame marker tracking → update weather-globe on marker found
+  window.addEventListener('load', () => {
+    const marker = document.getElementById('hiro-marker');
+    if (marker) {
+      marker.addEventListener('markerFound',  () => {
+        document.getElementById('mode-label').textContent = 'MARKER LOCKED — WEATHER-GLOBE ACTIVE';
+      });
+      marker.addEventListener('markerLost',   () => {
+        document.getElementById('mode-label').textContent = 'MODE: WEATHER-GLOBE — AIM AT HIRO MARKER';
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>
