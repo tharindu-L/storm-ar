@@ -267,23 +267,25 @@
   <!-- Hiro marker anchor -->
   <a-marker preset="hiro" id="hiro-marker">
     <!-- weather-globe root — rebuilt by JS on each data refresh -->
-    <a-entity id="weather-globe-root" position="0 0.45 0" scale="0.8 0.8 0.8">
+    <a-entity id="weather-globe-root" position="0 0.05 0" scale="0.45 0.45 0.45">
 
       <!-- SUN group (default visible) -->
-      <a-entity id="wg-sun" visible="true" position="0 0.95 0">
+      <a-entity id="wg-sun" visible="true" position="0 1.25 0" animation="property: rotation; from: 0 0 0; to: 0 0 360; dur: 12000; loop: true; easing: linear">
         <!-- core sphere -->
-        <a-sphere color="#FFD700" radius="0.55" material="emissive:#FFD700; emissiveIntensity:0.55; metalness:0; roughness:0.6"></a-sphere>
-        <!-- corona rays (8 thin boxes) -->
-        <a-box id="ray0"  color="#FFD700" width="0.06" height="1.1" depth="0.06" position="0 0 0" rotation="0 0 0"    material="emissive:#FFD700;emissiveIntensity:0.65"></a-box>
-        <a-box id="ray1"  color="#FFD700" width="0.06" height="1.1" depth="0.06" position="0 0 0" rotation="0 0 45"   material="emissive:#FFD700;emissiveIntensity:0.65"></a-box>
-        <a-box id="ray2"  color="#FFD700" width="0.06" height="1.1" depth="0.06" position="0 0 0" rotation="0 0 90"   material="emissive:#FFD700;emissiveIntensity:0.65"></a-box>
-        <a-box id="ray3"  color="#FFD700" width="0.06" height="1.1" depth="0.06" position="0 0 0" rotation="0 0 135"  material="emissive:#FFD700;emissiveIntensity:0.65"></a-box>
-        <!-- slow rotation animation -->
-        <a-animation attribute="rotation" to="0 360 0" dur="12000" repeat="indefinite" easing="linear"></a-animation>
+        <a-sphere color="#FFD700" radius="0.5" material="emissive:#FFD700; emissiveIntensity:0.55; metalness:0; roughness:0.6"></a-sphere>
+        <!-- triangular rays -->
+        <a-cone color="#FFD700" radius-bottom="0.11" radius-top="0" height="0.3" position="0 0.68 0" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
+        <a-cone color="#FFD700" radius-bottom="0.11" radius-top="0" height="0.3" position="0 -0.68 0" rotation="0 0 180" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
+        <a-cone color="#FFD700" radius-bottom="0.11" radius-top="0" height="0.3" position="0.68 0 0" rotation="0 0 -90" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
+        <a-cone color="#FFD700" radius-bottom="0.11" radius-top="0" height="0.3" position="-0.68 0 0" rotation="0 0 90" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
+        <a-cone color="#FFD700" radius-bottom="0.1" radius-top="0" height="0.28" position="0.48 0.48 0" rotation="0 0 -45" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
+        <a-cone color="#FFD700" radius-bottom="0.1" radius-top="0" height="0.28" position="-0.48 0.48 0" rotation="0 0 45" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
+        <a-cone color="#FFD700" radius-bottom="0.1" radius-top="0" height="0.28" position="0.48 -0.48 0" rotation="0 0 -135" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
+        <a-cone color="#FFD700" radius-bottom="0.1" radius-top="0" height="0.28" position="-0.48 -0.48 0" rotation="0 0 135" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
       </a-entity>
 
       <!-- CLOUD group -->
-      <a-entity id="wg-cloud" visible="false" position="-0.55 0.35 0">
+      <a-entity id="wg-cloud" visible="false" position="-0.7 0.65 0">
         <a-sphere color="#cccccc" radius="0.28" position="0 0 0"      material="emissive:#aaaaaa;emissiveIntensity:0.1"></a-sphere>
         <a-sphere color="#dddddd" radius="0.22" position="0.22 -0.06 0" material="emissive:#aaaaaa;emissiveIntensity:0.1"></a-sphere>
         <a-sphere color="#dddddd" radius="0.20" position="-0.2 -0.06 0" material="emissive:#aaaaaa;emissiveIntensity:0.1"></a-sphere>
@@ -293,14 +295,14 @@
       </a-entity>
 
       <!-- SECOND CLOUD group -->
-      <a-entity id="wg-cloud-right" visible="false" position="0.55 0.35 0">
+      <a-entity id="wg-cloud-right" visible="false" position="0.7 0.65 0">
         <a-sphere color="#cccccc" radius="0.28" position="0 0 0"></a-sphere>
         <a-sphere color="#dddddd" radius="0.22" position="0.22 -0.06 0"></a-sphere>
         <a-sphere color="#dddddd" radius="0.20" position="-0.2 -0.06 0"></a-sphere>
       </a-entity>
 
       <!-- RAIN group -->
-      <a-entity id="wg-rain" visible="false" position="0 0.7 0">
+      <a-entity id="wg-rain" visible="false" position="0 0.9 0">
         <!-- cloud body -->
         <a-sphere color="#888888" radius="0.28" position="0 0.1 0"   material="emissive:#555555;emissiveIntensity:0.1"></a-sphere>
         <a-sphere color="#999999" radius="0.22" position="0.2 0.05 0" material="emissive:#555555;emissiveIntensity:0.1"></a-sphere>
@@ -318,13 +320,24 @@
       </a-entity>
 
       <!-- LIGHTNING group -->
-      <a-entity id="wg-lightning" visible="false" position="0 0.48 0.02">
+      <a-entity id="wg-lightning" visible="false" position="0 0.62 0.02">
         <a-box color="#ffe600" width="0.08" height="0.34" depth="0.04" position="-0.04 0 0" rotation="0 0 -25" material="emissive:#ffe600;emissiveIntensity:0.8"></a-box>
         <a-box color="#ffe600" width="0.08" height="0.34" depth="0.04" position="0.04 -0.22 0" rotation="0 0 25" material="emissive:#ffe600;emissiveIntensity:0.8"></a-box>
       </a-entity>
 
+      <!-- GREEN YARD -->
+      <a-plane
+        id="wg-yard"
+        color="#35a853"
+        width="1.8"
+        height="1.1"
+        position="0 -0.26 0.08"
+        rotation="-90 0 0"
+        material="emissive:#176b2d;emissiveIntensity:0.18;roughness:1;side:double"
+      ></a-plane>
+
       <!-- HOUSE group -->
-      <a-entity id="wg-home" position="0 -0.2 0.08">
+      <a-entity id="wg-home" position="0 -0.25 0.08">
         <a-box color="#d8894a" width="0.5" height="0.38" depth="0.38" position="0 0.19 0"></a-box>
         <a-cone color="#b83b32" radius-bottom="0.42" radius-top="0" height="0.34" position="0 0.55 0" rotation="0 45 0"></a-cone>
         <a-box color="#5b3425" width="0.12" height="0.22" depth="0.03" position="0 0.11 -0.2"></a-box>
@@ -333,7 +346,7 @@
       </a-entity>
 
       <!-- TREE group -->
-      <a-entity id="wg-tree" position="0 -0.78 0.08">
+      <a-entity id="wg-tree" position="0.78 -0.25 0.08">
         <a-cylinder color="#70452d" radius="0.06" height="0.35" position="0 0.18 0"></a-cylinder>
         <a-sphere color="#35b95d" radius="0.2" position="0 0.43 0"></a-sphere>
         <a-sphere color="#48cc6c" radius="0.15" position="-0.13 0.38 0"></a-sphere>
@@ -543,8 +556,8 @@ function updateWeatherGlobe() {
   const isThunderstorm = w.code >= 95;
 
   document.getElementById('wg-sun').setAttribute('visible',   icon === 'sun');
-  document.getElementById('wg-cloud').setAttribute('visible', icon === 'sun' || icon === 'cloud');
-  document.getElementById('wg-cloud-right').setAttribute('visible', icon === 'sun' || icon === 'cloud');
+  document.getElementById('wg-cloud').setAttribute('visible', icon === 'cloud');
+  document.getElementById('wg-cloud-right').setAttribute('visible', icon === 'cloud');
   document.getElementById('wg-rain').setAttribute('visible',  icon === 'rain');
   document.getElementById('wg-lightning').setAttribute('visible', isThunderstorm);
 
