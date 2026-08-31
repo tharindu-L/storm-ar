@@ -269,89 +269,191 @@
     <!-- weather-globe root — rebuilt by JS on each data refresh -->
     <a-entity id="weather-globe-root" position="0 0.05 0" scale="0.45 0.45 0.45">
 
-      <!-- SUN group (default visible) -->
-      <a-entity id="wg-sun" visible="true" position="0 1.25 0" animation="property: rotation; from: 0 0 0; to: 0 0 360; dur: 12000; loop: true; easing: linear">
-        <!-- core sphere -->
-        <a-sphere color="#FFD700" radius="0.5" material="emissive:#FFD700; emissiveIntensity:0.55; metalness:0; roughness:0.6"></a-sphere>
-        <!-- triangular rays -->
-        <a-cone color="#FFD700" radius-bottom="0.11" radius-top="0" height="0.3" position="0 0.68 0" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
-        <a-cone color="#FFD700" radius-bottom="0.11" radius-top="0" height="0.3" position="0 -0.68 0" rotation="0 0 180" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
-        <a-cone color="#FFD700" radius-bottom="0.11" radius-top="0" height="0.3" position="0.68 0 0" rotation="0 0 -90" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
-        <a-cone color="#FFD700" radius-bottom="0.11" radius-top="0" height="0.3" position="-0.68 0 0" rotation="0 0 90" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
-        <a-cone color="#FFD700" radius-bottom="0.1" radius-top="0" height="0.28" position="0.48 0.48 0" rotation="0 0 -45" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
-        <a-cone color="#FFD700" radius-bottom="0.1" radius-top="0" height="0.28" position="-0.48 0.48 0" rotation="0 0 45" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
-        <a-cone color="#FFD700" radius-bottom="0.1" radius-top="0" height="0.28" position="0.48 -0.48 0" rotation="0 0 -135" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
-        <a-cone color="#FFD700" radius-bottom="0.1" radius-top="0" height="0.28" position="-0.48 -0.48 0" rotation="0 0 135" material="emissive:#FFD700;emissiveIntensity:0.65"></a-cone>
+            <!-- SUN group — layered glow + dual rotation -->
+      <a-entity id="wg-sun" visible="true" position="0 1.3 0">
+        <!-- outer glow ring -->
+        <a-torus color="#FFE566" radius="0.62" radius-tubular="0.045"
+          material="emissive:#FFD700;emissiveIntensity:0.4;opacity:0.35;transparent:true;side:double">
+          <a-animation attribute="rotation" from="0 0 0" to="0 0 360" dur="18000" loop="true" easing="linear"></a-animation>
+        </a-torus>
+        <!-- inner glow halo -->
+        <a-sphere color="#FFE566" radius="0.58"
+          material="emissive:#FFD700;emissiveIntensity:0.18;opacity:0.18;transparent:true">
+        </a-sphere>
+        <!-- core body — slow pulse -->
+        <a-sphere color="#FFD700" radius="0.46"
+          material="emissive:#FFB300;emissiveIntensity:0.7;metalness:0;roughness:0.4">
+          <a-animation attribute="scale" from="1 1 1" to="1.06 1.06 1.06" dur="2200" direction="alternate" repeat="indefinite" easing="easeInOutSine"></a-animation>
+        </a-sphere>
+        <!-- highlight spot -->
+        <a-sphere color="#FFF9C4" radius="0.16" position="-0.16 0.2 0.38"
+          material="emissive:#ffffff;emissiveIntensity:0.6;opacity:0.55;transparent:true">
+        </a-sphere>
+        <!-- rays wrapper — rotates independently -->
+        <a-entity animation="property: rotation; from: 0 0 0; to: 0 0 360; dur: 10000; loop: true; easing: linear">
+          <a-cone color="#FFD700" radius-bottom="0.09" radius-top="0.01" height="0.32" position="0 0.72 0"          material="emissive:#FFD700;emissiveIntensity:0.9;opacity:0.85;transparent:true"></a-cone>
+          <a-cone color="#FFD700" radius-bottom="0.09" radius-top="0.01" height="0.32" position="0 -0.72 0"         rotation="0 0 180" material="emissive:#FFD700;emissiveIntensity:0.9;opacity:0.85;transparent:true"></a-cone>
+          <a-cone color="#FFD700" radius-bottom="0.09" radius-top="0.01" height="0.32" position="0.72 0 0"          rotation="0 0 -90" material="emissive:#FFD700;emissiveIntensity:0.9;opacity:0.85;transparent:true"></a-cone>
+          <a-cone color="#FFD700" radius-bottom="0.09" radius-top="0.01" height="0.32" position="-0.72 0 0"         rotation="0 0 90"  material="emissive:#FFD700;emissiveIntensity:0.9;opacity:0.85;transparent:true"></a-cone>
+          <a-cone color="#FFCC00" radius-bottom="0.075" radius-top="0.01" height="0.26" position="0.51 0.51 0"      rotation="0 0 -45" material="emissive:#FFD700;emissiveIntensity:0.8;opacity:0.75;transparent:true"></a-cone>
+          <a-cone color="#FFCC00" radius-bottom="0.075" radius-top="0.01" height="0.26" position="-0.51 0.51 0"     rotation="0 0 45"  material="emissive:#FFD700;emissiveIntensity:0.8;opacity:0.75;transparent:true"></a-cone>
+          <a-cone color="#FFCC00" radius-bottom="0.075" radius-top="0.01" height="0.26" position="0.51 -0.51 0"     rotation="0 0 -135" material="emissive:#FFD700;emissiveIntensity:0.8;opacity:0.75;transparent:true"></a-cone>
+          <a-cone color="#FFCC00" radius-bottom="0.075" radius-top="0.01" height="0.26" position="-0.51 -0.51 0"    rotation="0 0 135" material="emissive:#FFD700;emissiveIntensity:0.8;opacity:0.75;transparent:true"></a-cone>
+        </a-entity>
       </a-entity>
 
-      <!-- CLOUD group -->
-      <a-entity id="wg-cloud" visible="false" position="-0.7 0.65 0">
-        <a-sphere color="#cccccc" radius="0.28" position="0 0 0"      material="emissive:#aaaaaa;emissiveIntensity:0.1"></a-sphere>
-        <a-sphere color="#dddddd" radius="0.22" position="0.22 -0.06 0" material="emissive:#aaaaaa;emissiveIntensity:0.1"></a-sphere>
-        <a-sphere color="#dddddd" radius="0.20" position="-0.2 -0.06 0" material="emissive:#aaaaaa;emissiveIntensity:0.1"></a-sphere>
-        <a-sphere color="#bbbbbb" radius="0.14" position="0 -0.2 0"    material="emissive:#aaaaaa;emissiveIntensity:0.1"></a-sphere>
-        <!-- gentle float -->
-        <a-animation attribute="position" from="0 0 0" to="0 0.08 0" dur="2500" direction="alternate" repeat="indefinite" easing="easeInOutSine"></a-animation>
+      <!-- CLOUD group (left) -->
+      <a-entity id="wg-cloud" visible="false" position="-0.72 0.68 0">
+        <a-sphere color="#f0f4ff" radius="0.30" position="0 0 0"       material="emissive:#c8d4f0;emissiveIntensity:0.18"></a-sphere>
+        <a-sphere color="#e8eeff" radius="0.24" position="0.26 -0.05 0" material="emissive:#c8d4f0;emissiveIntensity:0.15"></a-sphere>
+        <a-sphere color="#e8eeff" radius="0.22" position="-0.24 -0.05 0" material="emissive:#c8d4f0;emissiveIntensity:0.15"></a-sphere>
+        <a-sphere color="#dde4ff" radius="0.16" position="0 -0.22 0"   material="emissive:#aab4d8;emissiveIntensity:0.1"></a-sphere>
+        <a-animation attribute="position" from="-0.72 0.68 0" to="-0.72 0.76 0" dur="3000" direction="alternate" repeat="indefinite" easing="easeInOutSine"></a-animation>
       </a-entity>
 
-      <!-- SECOND CLOUD group -->
-      <a-entity id="wg-cloud-right" visible="false" position="0.7 0.65 0">
-        <a-sphere color="#cccccc" radius="0.28" position="0 0 0"></a-sphere>
-        <a-sphere color="#dddddd" radius="0.22" position="0.22 -0.06 0"></a-sphere>
-        <a-sphere color="#dddddd" radius="0.20" position="-0.2 -0.06 0"></a-sphere>
+      <!-- CLOUD group (right) -->
+      <a-entity id="wg-cloud-right" visible="false" position="0.72 0.72 0">
+        <a-sphere color="#f0f4ff" radius="0.26" position="0 0 0"       material="emissive:#c8d4f0;emissiveIntensity:0.15"></a-sphere>
+        <a-sphere color="#e8eeff" radius="0.20" position="0.22 -0.04 0" material="emissive:#c8d4f0;emissiveIntensity:0.12"></a-sphere>
+        <a-sphere color="#e8eeff" radius="0.18" position="-0.20 -0.04 0" material="emissive:#c8d4f0;emissiveIntensity:0.12"></a-sphere>
+        <a-animation attribute="position" from="0.72 0.72 0" to="0.72 0.79 0" dur="3600" direction="alternate" repeat="indefinite" easing="easeInOutSine"></a-animation>
       </a-entity>
 
       <!-- RAIN group -->
       <a-entity id="wg-rain" visible="false" position="0 0.9 0">
-        <!-- cloud body -->
-        <a-sphere color="#888888" radius="0.28" position="0 0.1 0"   material="emissive:#555555;emissiveIntensity:0.1"></a-sphere>
-        <a-sphere color="#999999" radius="0.22" position="0.2 0.05 0" material="emissive:#555555;emissiveIntensity:0.1"></a-sphere>
-        <a-sphere color="#999999" radius="0.20" position="-0.18 0.05 0" material="emissive:#555555;emissiveIntensity:0.1"></a-sphere>
-        <!-- raindrops (capsule-like thin boxes) -->
-        <a-box color="#4488ff" width="0.025" height="0.14" depth="0.025" position="-0.12 -0.22 0" material="emissive:#2255cc;emissiveIntensity:0.5">
-          <a-animation attribute="position" from="-0.12 -0.1 0" to="-0.12 -0.38 0" dur="900" repeat="indefinite" easing="linear"></a-animation>
+        <a-sphere color="#7a8fa8" radius="0.30" position="0 0.12 0"    material="emissive:#445566;emissiveIntensity:0.15"></a-sphere>
+        <a-sphere color="#8a9fb8" radius="0.24" position="0.24 0.06 0"  material="emissive:#445566;emissiveIntensity:0.12"></a-sphere>
+        <a-sphere color="#8a9fb8" radius="0.22" position="-0.22 0.06 0" material="emissive:#445566;emissiveIntensity:0.12"></a-sphere>
+        <a-sphere color="#6a7f98" radius="0.18" position="0.44 0.02 0"  material="emissive:#445566;emissiveIntensity:0.1"></a-sphere>
+        <!-- 5 raindrops with staggered delay -->
+        <a-box color="#66aaff" width="0.022" height="0.13" depth="0.022" material="emissive:#3366cc;emissiveIntensity:0.6;opacity:0.85;transparent:true">
+          <a-animation attribute="position" from="-0.18 -0.08 0" to="-0.18 -0.42 0" dur="800" repeat="indefinite" easing="linear"></a-animation>
         </a-box>
-        <a-box color="#4488ff" width="0.025" height="0.14" depth="0.025" position="0 -0.22 0" material="emissive:#2255cc;emissiveIntensity:0.5">
-          <a-animation attribute="position" from="0 -0.1 0" to="0 -0.38 0" dur="900" delay="300" repeat="indefinite" easing="linear"></a-animation>
+        <a-box color="#66aaff" width="0.022" height="0.13" depth="0.022" material="emissive:#3366cc;emissiveIntensity:0.6;opacity:0.85;transparent:true">
+          <a-animation attribute="position" from="-0.06 -0.08 0" to="-0.06 -0.42 0" dur="800" delay="160" repeat="indefinite" easing="linear"></a-animation>
         </a-box>
-        <a-box color="#4488ff" width="0.025" height="0.14" depth="0.025" position="0.12 -0.22 0" material="emissive:#2255cc;emissiveIntensity:0.5">
-          <a-animation attribute="position" from="0.12 -0.1 0" to="0.12 -0.38 0" dur="900" delay="600" repeat="indefinite" easing="linear"></a-animation>
+        <a-box color="#66aaff" width="0.022" height="0.13" depth="0.022" material="emissive:#3366cc;emissiveIntensity:0.6;opacity:0.85;transparent:true">
+          <a-animation attribute="position" from="0.06 -0.08 0" to="0.06 -0.42 0" dur="800" delay="320" repeat="indefinite" easing="linear"></a-animation>
+        </a-box>
+        <a-box color="#66aaff" width="0.022" height="0.13" depth="0.022" material="emissive:#3366cc;emissiveIntensity:0.6;opacity:0.85;transparent:true">
+          <a-animation attribute="position" from="0.18 -0.08 0" to="0.18 -0.42 0" dur="800" delay="480" repeat="indefinite" easing="linear"></a-animation>
+        </a-box>
+        <a-box color="#66aaff" width="0.022" height="0.13" depth="0.022" material="emissive:#3366cc;emissiveIntensity:0.6;opacity:0.85;transparent:true">
+          <a-animation attribute="position" from="0.30 -0.08 0" to="0.30 -0.42 0" dur="800" delay="640" repeat="indefinite" easing="linear"></a-animation>
         </a-box>
       </a-entity>
 
-      <!-- LIGHTNING group -->
-      <a-entity id="wg-lightning" visible="false" position="0 0.62 0.02">
-        <a-box color="#ffe600" width="0.08" height="0.34" depth="0.04" position="-0.04 0 0" rotation="0 0 -25" material="emissive:#ffe600;emissiveIntensity:0.8"></a-box>
-        <a-box color="#ffe600" width="0.08" height="0.34" depth="0.04" position="0.04 -0.22 0" rotation="0 0 25" material="emissive:#ffe600;emissiveIntensity:0.8"></a-box>
+      <!-- LIGHTNING group — tucked under rain cloud -->
+      <a-entity id="wg-lightning" visible="false" position="0 0.55 0.02">
+        <a-box color="#ffe600" width="0.09" height="0.32" depth="0.04" position="-0.03 0.06 0"  rotation="0 0 -22" material="emissive:#ffe600;emissiveIntensity:1.0">
+          <a-animation attribute="material.opacity" from="1" to="0.3" dur="400" direction="alternate" repeat="indefinite" easing="easeInOutQuad"></a-animation>
+        </a-box>
+        <a-box color="#ffe600" width="0.09" height="0.32" depth="0.04" position="0.05 -0.2 0"   rotation="0 0 22"  material="emissive:#ffe600;emissiveIntensity:1.0">
+          <a-animation attribute="material.opacity" from="1" to="0.3" dur="400" delay="200" direction="alternate" repeat="indefinite" easing="easeInOutQuad"></a-animation>
+        </a-box>
       </a-entity>
 
-      <!-- GREEN YARD -->
+      <!-- YARD — richer green with subtle gradient via two planes -->
       <a-plane
         id="wg-yard"
-        color="#35a853"
-        width="1.8"
-        height="1.1"
+        color="#3dba5e"
+        width="2.0"
+        height="1.3"
         position="0 -0.26 0.08"
         rotation="-90 0 0"
-        material="emissive:#176b2d;emissiveIntensity:0.18;roughness:1;side:double"
+        material="emissive:#1a6e32;emissiveIntensity:0.22;roughness:1;side:double"
+      ></a-plane>
+      <!-- yard edge shadow strip -->
+      <a-plane
+        color="#1a5c28"
+        width="2.0"
+        height="0.12"
+        position="0 -0.26 -0.57"
+        rotation="-90 0 0"
+        material="emissive:#0d3318;emissiveIntensity:0.1;opacity:0.55;transparent:true;side:double"
       ></a-plane>
 
-      <!-- HOUSE group -->
+      <!-- PATH — stone walkway to door -->
+      <a-plane
+        color="#b0a090"
+        width="0.14"
+        height="0.38"
+        position="0 -0.255 -0.08"
+        rotation="-90 0 0"
+        material="emissive:#887060;emissiveIntensity:0.1;roughness:1;side:double"
+      ></a-plane>
+
+      <!-- HOUSE group — more detail -->
       <a-entity id="wg-home" position="0 -0.25 0.08">
-        <a-box color="#d8894a" width="0.5" height="0.38" depth="0.38" position="0 0.19 0"></a-box>
-        <a-cone color="#b83b32" radius-bottom="0.42" radius-top="0" height="0.34" position="0 0.55 0" rotation="0 45 0"></a-cone>
-        <a-box color="#5b3425" width="0.12" height="0.22" depth="0.03" position="0 0.11 -0.2"></a-box>
-        <a-box color="#8fe3ff" width="0.12" height="0.12" depth="0.03" position="-0.16 0.23 -0.2"></a-box>
-        <a-box color="#8fe3ff" width="0.12" height="0.12" depth="0.03" position="0.16 0.23 -0.2"></a-box>
+        <!-- walls -->
+        <a-box color="#e8c49a" width="0.54" height="0.40" depth="0.40" position="0 0.20 0"
+          material="emissive:#c8a070;emissiveIntensity:0.12;roughness:0.85"></a-box>
+        <!-- roof -->
+        <a-cone color="#c0392b" radius-bottom="0.46" radius-top="0" height="0.38" position="0 0.57 0" rotation="0 45 0"
+          material="emissive:#922b21;emissiveIntensity:0.15;roughness:0.7"></a-cone>
+        <!-- chimney -->
+        <a-box color="#8a6a50" width="0.08" height="0.22" depth="0.08" position="0.18 0.66 0"
+          material="emissive:#5a4030;emissiveIntensity:0.1"></a-box>
+        <!-- door -->
+        <a-box color="#6b4226" width="0.13" height="0.22" depth="0.03" position="0 0.12 -0.21"
+          material="emissive:#3d2010;emissiveIntensity:0.08"></a-box>
+        <!-- door knob -->
+        <a-sphere color="#f0c040" radius="0.018" position="0.055 0.12 -0.225"
+          material="emissive:#d4a000;emissiveIntensity:0.5"></a-sphere>
+        <!-- windows — with frame -->
+        <a-box color="#a8d8f0" width="0.13" height="0.12" depth="0.03" position="-0.17 0.25 -0.21"
+          material="emissive:#5599cc;emissiveIntensity:0.25"></a-box>
+        <a-box color="#a8d8f0" width="0.13" height="0.12" depth="0.03" position="0.17 0.25 -0.21"
+          material="emissive:#5599cc;emissiveIntensity:0.25"></a-box>
+        <!-- window cross bars -->
+        <a-box color="#d8b880" width="0.015" height="0.12" depth="0.035" position="-0.17 0.25 -0.215"
+          material="emissive:#aa8840;emissiveIntensity:0.1"></a-box>
+        <a-box color="#d8b880" width="0.13" height="0.015" depth="0.035" position="-0.17 0.25 -0.215"
+          material="emissive:#aa8840;emissiveIntensity:0.1"></a-box>
+        <a-box color="#d8b880" width="0.015" height="0.12" depth="0.035" position="0.17 0.25 -0.215"
+          material="emissive:#aa8840;emissiveIntensity:0.1"></a-box>
+        <a-box color="#d8b880" width="0.13" height="0.015" depth="0.035" position="0.17 0.25 -0.215"
+          material="emissive:#aa8840;emissiveIntensity:0.1"></a-box>
       </a-entity>
 
-      <!-- TREE group -->
-      <a-entity id="wg-tree" position="0.78 -0.25 0.08">
-        <a-cylinder color="#70452d" radius="0.06" height="0.35" position="0 0.18 0"></a-cylinder>
-        <a-sphere color="#35b95d" radius="0.2" position="0 0.43 0"></a-sphere>
-        <a-sphere color="#48cc6c" radius="0.15" position="-0.13 0.38 0"></a-sphere>
-        <a-sphere color="#2eaa58" radius="0.15" position="0.13 0.38 0"></a-sphere>
+      <!-- TREE (right) — fuller canopy -->
+      <a-entity id="wg-tree" position="0.82 -0.25 0.08">
+        <a-cylinder color="#6b4423" radius="0.055" height="0.38" position="0 0.19 0"
+          material="emissive:#3d2510;emissiveIntensity:0.1"></a-cylinder>
+        <!-- canopy layers -->
+        <a-sphere color="#2dbd55" radius="0.22" position="0 0.46 0"
+          material="emissive:#1a8a35;emissiveIntensity:0.18"></a-sphere>
+        <a-sphere color="#38d460" radius="0.17" position="-0.15 0.40 0"
+          material="emissive:#22a040;emissiveIntensity:0.15"></a-sphere>
+        <a-sphere color="#38d460" radius="0.17" position="0.15 0.40 0"
+          material="emissive:#22a040;emissiveIntensity:0.15"></a-sphere>
+        <a-sphere color="#52e876" radius="0.13" position="0 0.60 0"
+          material="emissive:#30bb50;emissiveIntensity:0.12"></a-sphere>
       </a-entity>
+
+      <!-- SECOND TREE (left, smaller) -->
+      <a-entity position="-0.80 -0.25 0.14">
+        <a-cylinder color="#7a5030" radius="0.04" height="0.28" position="0 0.14 0"
+          material="emissive:#3d2510;emissiveIntensity:0.1"></a-cylinder>
+        <a-sphere color="#28a84a" radius="0.17" position="0 0.36 0"
+          material="emissive:#1a6e30;emissiveIntensity:0.15"></a-sphere>
+        <a-sphere color="#34c45a" radius="0.13" position="-0.11 0.31 0"
+          material="emissive:#22a040;emissiveIntensity:0.12"></a-sphere>
+        <a-sphere color="#34c45a" radius="0.12" position="0.10 0.31 0"
+          material="emissive:#22a040;emissiveIntensity:0.12"></a-sphere>
+      </a-entity>
+
+      <!-- FLOWER patches on yard -->
+      <a-sphere color="#ff6688" radius="0.038" position="-0.38 -0.22 -0.12"
+        material="emissive:#dd2255;emissiveIntensity:0.4"></a-sphere>
+      <a-sphere color="#ffcc00" radius="0.032" position="-0.28 -0.22 -0.05"
+        material="emissive:#ddaa00;emissiveIntensity:0.4"></a-sphere>
+      <a-sphere color="#ff6688" radius="0.030" position="-0.48 -0.22 -0.04"
+        material="emissive:#dd2255;emissiveIntensity:0.4"></a-sphere>
+      <a-sphere color="#ff88ff" radius="0.034" position="0.42 -0.22 -0.10"
+        material="emissive:#cc44cc;emissiveIntensity:0.4"></a-sphere>
+      <a-sphere color="#ffcc00" radius="0.030" position="0.54 -0.22 -0.04"
+        material="emissive:#ddaa00;emissiveIntensity:0.4"></a-sphere>
 
       <!-- Temperature label -->
       <a-text
