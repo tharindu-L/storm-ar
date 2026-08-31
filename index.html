@@ -267,17 +267,17 @@
   <!-- Hiro marker anchor -->
   <a-marker preset="hiro" id="hiro-marker">
     <!-- weather-globe root — rebuilt by JS on each data refresh -->
-    <a-entity id="weather-globe-root" position="0 0.5 0" scale="0.5 0.5 0.5">
+    <a-entity id="weather-globe-root" position="0 0.65 0" scale="0.8 0.8 0.8">
 
       <!-- SUN group (default visible) -->
       <a-entity id="wg-sun" visible="true">
         <!-- core sphere -->
-        <a-sphere color="#FFD700" radius="0.35" material="emissive:#FFD700; emissiveIntensity:0.4; metalness:0; roughness:0.6"></a-sphere>
+        <a-sphere color="#FFD700" radius="0.55" material="emissive:#FFD700; emissiveIntensity:0.55; metalness:0; roughness:0.6"></a-sphere>
         <!-- corona rays (8 thin boxes) -->
-        <a-box id="ray0"  color="#FFD700" width="0.04" height="0.7" depth="0.04" position="0 0 0" rotation="0 0 0"    material="emissive:#FFD700;emissiveIntensity:0.5"></a-box>
-        <a-box id="ray1"  color="#FFD700" width="0.04" height="0.7" depth="0.04" position="0 0 0" rotation="0 0 45"   material="emissive:#FFD700;emissiveIntensity:0.5"></a-box>
-        <a-box id="ray2"  color="#FFD700" width="0.04" height="0.7" depth="0.04" position="0 0 0" rotation="0 0 90"   material="emissive:#FFD700;emissiveIntensity:0.5"></a-box>
-        <a-box id="ray3"  color="#FFD700" width="0.04" height="0.7" depth="0.04" position="0 0 0" rotation="0 0 135"  material="emissive:#FFD700;emissiveIntensity:0.5"></a-box>
+        <a-box id="ray0"  color="#FFD700" width="0.06" height="1.1" depth="0.06" position="0 0 0" rotation="0 0 0"    material="emissive:#FFD700;emissiveIntensity:0.65"></a-box>
+        <a-box id="ray1"  color="#FFD700" width="0.06" height="1.1" depth="0.06" position="0 0 0" rotation="0 0 45"   material="emissive:#FFD700;emissiveIntensity:0.65"></a-box>
+        <a-box id="ray2"  color="#FFD700" width="0.06" height="1.1" depth="0.06" position="0 0 0" rotation="0 0 90"   material="emissive:#FFD700;emissiveIntensity:0.65"></a-box>
+        <a-box id="ray3"  color="#FFD700" width="0.06" height="1.1" depth="0.06" position="0 0 0" rotation="0 0 135"  material="emissive:#FFD700;emissiveIntensity:0.65"></a-box>
         <!-- slow rotation animation -->
         <a-animation attribute="rotation" to="0 360 0" dur="12000" repeat="indefinite" easing="linear"></a-animation>
       </a-entity>
@@ -509,7 +509,7 @@ function updateQuakeHUD() {
 function updateWeatherGlobe() {
   const w = STATE.weather;
   if (!w) return;
-  const icon = wmoToIcon(w.code);
+  const icon = 'sun';
 
   document.getElementById('wg-sun').setAttribute('visible',   icon === 'sun');
   document.getElementById('wg-cloud').setAttribute('visible', icon === 'cloud');
