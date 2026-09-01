@@ -510,9 +510,9 @@
   </a-entity>
 
   <!-- Tap-to-place reticle ring shown on ground -->
-  <a-entity id="reticle" visible="true"
-    position="0 0 -2"
-    rotation="-90 0 0">
+    <a-entity id="reticle" visible="true"
+    position="0 -1.2 -3"
+    rotation="0 0 0">
     <a-ring
       color="#00ff88"
       radius-inner="0.18"
@@ -554,9 +554,7 @@ const CFG = {
   weatherCity: new URLSearchParams(location.search).get('city') ?? 'Colombo',
 
   // USGS last 24h M1.0+ worldwide
-  usgsUrl: 'https://earthquake.usgs.gov/fdsnservices/event/query.json' +
-            '?format=geojson&starttime=NOW-24hours&minmagnitude=1.0' +
-            '&orderby=time&limit=25',
+    usgsUrl: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson',
 
   openMeteoUrl(lat, lon) {
     return `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
@@ -881,9 +879,9 @@ function initMarkerless() {
       STATE.gridAnchored = true;
 
       // Place grid flat on the virtual floor in camera view
-      root.setAttribute('position', '0 0 -2');
-      root.setAttribute('rotation', '-90 0 0');
-      root.setAttribute('scale',    '1.4 1.4 1.4');
+      root.setAttribute('position', '0 -1.2 -3');
+      root.setAttribute('rotation', '0 0 0');
+      root.setAttribute('scale',    '2 2 2');
       root.setAttribute('visible',  'true');
 
       buildQuakeGrid();
