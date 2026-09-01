@@ -303,7 +303,8 @@
       </a-entity>
 
       <!-- CLOUD group (left) -->
-      <a-entity id="wg-cloud" visible="false" position="-0.72 0.68 0">
+      <a-entity id="wg-cloud" visible="false" position="-0.72 0.68 0"
+        animation="property: position; from: -0.9 0.68 0; to: -0.5 0.68 0; dur: 5000; dir: alternate; loop: true; easing: easeInOutSine">
         <a-sphere color="#f0f4ff" radius="0.30" position="0 0 0"       material="emissive:#c8d4f0;emissiveIntensity:0.18"></a-sphere>
         <a-sphere color="#e8eeff" radius="0.24" position="0.26 -0.05 0" material="emissive:#c8d4f0;emissiveIntensity:0.15"></a-sphere>
         <a-sphere color="#e8eeff" radius="0.22" position="-0.24 -0.05 0" material="emissive:#c8d4f0;emissiveIntensity:0.15"></a-sphere>
@@ -312,7 +313,8 @@
       </a-entity>
 
       <!-- CLOUD group (right) -->
-      <a-entity id="wg-cloud-right" visible="false" position="0.72 0.72 0">
+      <a-entity id="wg-cloud-right" visible="false" position="0.72 0.72 0"
+        animation="property: position; from: 0.5 0.72 0; to: 0.9 0.72 0; dur: 4000; dir: alternate; loop: true; easing: easeInOutSine">
         <a-sphere color="#f0f4ff" radius="0.26" position="0 0 0"       material="emissive:#c8d4f0;emissiveIntensity:0.15"></a-sphere>
         <a-sphere color="#e8eeff" radius="0.20" position="0.22 -0.04 0" material="emissive:#c8d4f0;emissiveIntensity:0.12"></a-sphere>
         <a-sphere color="#e8eeff" radius="0.18" position="-0.20 -0.04 0" material="emissive:#c8d4f0;emissiveIntensity:0.12"></a-sphere>
@@ -345,7 +347,8 @@
       </a-entity>
 
       <!-- LIGHTNING group — tucked under rain cloud -->
-      <a-entity id="wg-lightning" visible="false" position="0 0.55 0.02">
+      <a-entity id="wg-lightning" visible="false" position="0 0.55 0.02"
+        animation="property: position; from: -0.1 0.55 0.02; to: 0.1 0.55 0.02; dur: 3000; dir: alternate; loop: true; easing: easeInOutSine">
         <a-box color="#ffe600" width="0.09" height="0.32" depth="0.04" position="-0.03 0.06 0"  rotation="0 0 -22" material="emissive:#ffe600;emissiveIntensity:1.0">
           <a-animation attribute="material.opacity" from="1" to="0.3" dur="400" direction="alternate" repeat="indefinite" easing="easeInOutQuad"></a-animation>
         </a-box>
@@ -444,18 +447,6 @@
           material="emissive:#22a040;emissiveIntensity:0.12"></a-sphere>
       </a-entity>
 
-      <!-- FLOWER patches on yard -->
-      <a-sphere color="#ff6688" radius="0.038" position="-0.38 -0.22 -0.12"
-        material="emissive:#dd2255;emissiveIntensity:0.4"></a-sphere>
-      <a-sphere color="#ffcc00" radius="0.032" position="-0.28 -0.22 -0.05"
-        material="emissive:#ddaa00;emissiveIntensity:0.4"></a-sphere>
-      <a-sphere color="#ff6688" radius="0.030" position="-0.48 -0.22 -0.04"
-        material="emissive:#dd2255;emissiveIntensity:0.4"></a-sphere>
-      <a-sphere color="#ff88ff" radius="0.034" position="0.42 -0.22 -0.10"
-        material="emissive:#cc44cc;emissiveIntensity:0.4"></a-sphere>
-      <a-sphere color="#ffcc00" radius="0.030" position="0.54 -0.22 -0.04"
-        material="emissive:#ddaa00;emissiveIntensity:0.4"></a-sphere>
-
       <!-- Temperature label -->
       <a-text
         id="wg-temp-label"
@@ -503,10 +494,10 @@
   loading-screen="enabled: false"
 >
   <!-- Floor anchor — fixed at ground level in front of camera -->
-  <a-entity id="quake-grid-root" visible="false"
-    position="0 0 -2"
-    rotation="-90 0 0"
-    scale="1.4 1.4 1.4">
+    <a-entity id="quake-grid-root" visible="false"
+    position="0 -1.5 -2.5"
+    rotation="-15 0 0"
+    scale="2.5 2.5 2.5">
   </a-entity>
 
   <!-- Tap-to-place reticle ring shown on ground -->
@@ -715,30 +706,30 @@ function buildQuakeGrid() {
   for (let i = 0; i <= cols; i++) {
     const x = -w / 2 + i * cs;
     const line = document.createElement('a-box');
-    line.setAttribute('color',    '#00ff8833');
+    line.setAttribute('color', '#00ff88');
     line.setAttribute('opacity',  '0.4');
     line.setAttribute('width',    '0.005');
     line.setAttribute('height',   '0.005');
     line.setAttribute('depth',    `${h}`);
     line.setAttribute('position', `${x} 0 0`);
-    line.setAttribute('material', 'emissive:#00ff88;emissiveIntensity:0.3;opacity:0.5;transparent:true');
+    line.setAttribute('material', 'color:#00ff88;emissive:#00ff88;emissiveIntensity:0.3;opacity:0.5;transparent:true');
     root.appendChild(line);
   }
   for (let j = 0; j <= rows; j++) {
     const z = -h / 2 + j * cs;
     const line = document.createElement('a-box');
-    line.setAttribute('color',    '#00ff8833');
+    line.setAttribute('color', '#00ff88');
     line.setAttribute('width',    `${w}`);
     line.setAttribute('height',   '0.005');
     line.setAttribute('depth',    '0.005');
     line.setAttribute('position', `0 0 ${z}`);
-    line.setAttribute('material', 'emissive:#00ff88;emissiveIntensity:0.3;opacity:0.5;transparent:true');
+    line.setAttribute('material', 'color:#00ff88;emissive:#00ff88;emissiveIntensity:0.3;opacity:0.5;transparent:true');
     root.appendChild(line);
   }
 
   // ── Floor plane (semi-transparent) ──
   const floor = document.createElement('a-plane');
-  floor.setAttribute('rotation',  '-90 0 0');
+  floor.setAttribute('rotation',  '0 0 0');
   floor.setAttribute('width',     `${w}`);
   floor.setAttribute('height',    `${h}`);
   floor.setAttribute('color',     '#001a0d');
@@ -879,9 +870,9 @@ function initMarkerless() {
       STATE.gridAnchored = true;
 
       // Place grid flat on the virtual floor in camera view
-      root.setAttribute('position', '0 -1.2 -3');
-      root.setAttribute('rotation', '0 0 0');
-      root.setAttribute('scale',    '2 2 2');
+      root.setAttribute('position', '0 -1.5 -2.5');
+      root.setAttribute('rotation', '-15 0 0');
+      root.setAttribute('scale',    '2.5 2.5 2.5');
       root.setAttribute('visible',  'true');
 
       buildQuakeGrid();
