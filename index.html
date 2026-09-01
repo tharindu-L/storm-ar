@@ -303,7 +303,8 @@
       </a-entity>
 
       <!-- CLOUD group (left) -->
-      <a-entity id="wg-cloud" visible="false" position="-0.72 0.68 0">
+      <a-entity id="wg-cloud" visible="false" position="-0.72 0.68 0"
+        animation="property: position; from: -0.9 0.68 0; to: -0.5 0.68 0; dur: 5000; dir: alternate; loop: true; easing: easeInOutSine">
         <a-sphere color="#f0f4ff" radius="0.30" position="0 0 0"       material="emissive:#c8d4f0;emissiveIntensity:0.18"></a-sphere>
         <a-sphere color="#e8eeff" radius="0.24" position="0.26 -0.05 0" material="emissive:#c8d4f0;emissiveIntensity:0.15"></a-sphere>
         <a-sphere color="#e8eeff" radius="0.22" position="-0.24 -0.05 0" material="emissive:#c8d4f0;emissiveIntensity:0.15"></a-sphere>
@@ -312,7 +313,8 @@
       </a-entity>
 
       <!-- CLOUD group (right) -->
-      <a-entity id="wg-cloud-right" visible="false" position="0.72 0.72 0">
+      <a-entity id="wg-cloud-right" visible="false" position="0.72 0.72 0"
+        animation="property: position; from: 0.5 0.72 0; to: 0.9 0.72 0; dur: 4000; dir: alternate; loop: true; easing: easeInOutSine">
         <a-sphere color="#f0f4ff" radius="0.26" position="0 0 0"       material="emissive:#c8d4f0;emissiveIntensity:0.15"></a-sphere>
         <a-sphere color="#e8eeff" radius="0.20" position="0.22 -0.04 0" material="emissive:#c8d4f0;emissiveIntensity:0.12"></a-sphere>
         <a-sphere color="#e8eeff" radius="0.18" position="-0.20 -0.04 0" material="emissive:#c8d4f0;emissiveIntensity:0.12"></a-sphere>
@@ -345,7 +347,8 @@
       </a-entity>
 
       <!-- LIGHTNING group — tucked under rain cloud -->
-      <a-entity id="wg-lightning" visible="false" position="0 0.55 0.02">
+      <a-entity id="wg-lightning" visible="false" position="0 0.55 0.02"
+        animation="property: position; from: -0.1 0.55 0.02; to: 0.1 0.55 0.02; dur: 3000; dir: alternate; loop: true; easing: easeInOutSine">
         <a-box color="#ffe600" width="0.09" height="0.32" depth="0.04" position="-0.03 0.06 0"  rotation="0 0 -22" material="emissive:#ffe600;emissiveIntensity:1.0">
           <a-animation attribute="material.opacity" from="1" to="0.3" dur="400" direction="alternate" repeat="indefinite" easing="easeInOutQuad"></a-animation>
         </a-box>
