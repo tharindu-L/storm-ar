@@ -48,6 +48,32 @@
       text-transform: uppercase;
     }
 
+    #location-search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+      margin-right: 12px;
+    }
+
+    #location-search {
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid #00ff8844;
+      color: #00ff88;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 1px;
+      padding: 6px 10px;
+      width: min(280px, 32vw);
+      min-width: 160px;
+      outline: none;
+    }
+
+    #location-search::placeholder {
+      color: #00ff8877;
+    }
+
+    #location-search-btn,
     #mode-toggle {
       background: #00ff8822;
       border: 1px solid #00ff88;
@@ -60,6 +86,7 @@
       text-transform: uppercase;
       transition: background 0.2s;
     }
+    #location-search-btn:hover,
     #mode-toggle:hover { background: #00ff8844; }
 
     #data-panel {
@@ -208,6 +235,12 @@
     <span id="hud-title">
       <span id="status-dot"></span>STORM v1.0
     </span>
+
+    <div id="location-search-wrap">
+      <input id="location-search" type="text" placeholder="Search any location" aria-label="Search weather location" />
+      <button id="location-search-btn" type="button">Search</button>
+    </div>
+
     <button id="mode-toggle" onclick="toggleMode()">⇄ QUAKE-GRID</button>
   </div>
   <div id="data-panel">
@@ -597,6 +630,44 @@ function wmoToString(code) {
   return WMO_CODES[code] ?? `CODE ${code}`;
 }
 
+function setLocationLabel(cityName) {
+  const input = document.getElementById('location-search');
+  if (input) input.value = cityName || CFG.weatherCity;
+}
+
+async function searchLocation() {
+  const input = document.getElementById('location-search');
+  const query = (input?.value || '').trim();
+  if (!query) {
+    document.getElementById('mode-label').textContent = 'SEARCH — ENTER A CITY OR COUNTRY';
+    return;
+  }
+
+  try {
+    const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
+    const res = await fetch(geocodeUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const json = await res.json();
+    const result = json.results && json.results[0];
+
+    if (!result) {
+      document.getElementById('mode-label').textContent = 'SEARCH — LOCATION NOT FOUND';
+      return;
+    }
+
+    CFG.weatherLat = Number(result.latitude);
+    CFG.weatherLon = Number(result.longitude);
+    CFG.weatherCity = result.name || 'Unknown';
+    setLocationLabel(CFG.weatherCity);
+    document.getElementById('mode-label').textContent = `SEARCH — ${CFG.weatherCity.toUpperCase()} READY`;
+    await fetchWeather();
+  } catch (err) {
+    console.error('[STORM] Location search failed:', err.message);
+    document.getElementById('mode-label').textContent = 'SEARCH — FAILED TO RESOLVE LOCATION';
+  }
+}
+
 // Wind direction degrees → compass
 function degToCompass(deg) {
   const dirs = ['N','NE','E','SE','S','SW','W','NW'];
@@ -916,6 +987,21 @@ function cleanupMarkerless() {
 
   // Polling every 30s
   setInterval(fetchAll, CFG.updateIntervalMs);
+
+  const searchInput = document.getElementById('location-search');
+  const searchBtn = document.getElementById('location-search-btn');
+  if (searchInput) {
+    searchInput.value = CFG.weatherCity || 'Colombo';
+    searchInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        searchLocation();
+      }
+    });
+  }
+  if (searchBtn) {
+    searchBtn.addEventListener('click', searchLocation);
+  }
 
   // Start in marker mode
   setMode('marker');
