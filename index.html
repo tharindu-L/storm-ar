@@ -715,24 +715,24 @@ function buildQuakeGrid() {
   for (let i = 0; i <= cols; i++) {
     const x = -w / 2 + i * cs;
     const line = document.createElement('a-box');
-    line.setAttribute('color',    '#00ff8833');
+    line.setAttribute('color', '#00ff88');
     line.setAttribute('opacity',  '0.4');
     line.setAttribute('width',    '0.005');
     line.setAttribute('height',   '0.005');
     line.setAttribute('depth',    `${h}`);
     line.setAttribute('position', `${x} 0 0`);
-    line.setAttribute('material', 'emissive:#00ff88;emissiveIntensity:0.3;opacity:0.5;transparent:true');
+    line.setAttribute('material', 'color:#00ff88;emissive:#00ff88;emissiveIntensity:0.3;opacity:0.5;transparent:true');
     root.appendChild(line);
   }
   for (let j = 0; j <= rows; j++) {
     const z = -h / 2 + j * cs;
     const line = document.createElement('a-box');
-    line.setAttribute('color',    '#00ff8833');
+    line.setAttribute('color', '#00ff88');
     line.setAttribute('width',    `${w}`);
     line.setAttribute('height',   '0.005');
     line.setAttribute('depth',    '0.005');
     line.setAttribute('position', `0 0 ${z}`);
-    line.setAttribute('material', 'emissive:#00ff88;emissiveIntensity:0.3;opacity:0.5;transparent:true');
+    line.setAttribute('material', 'color:#00ff88;emissive:#00ff88;emissiveIntensity:0.3;opacity:0.5;transparent:true');
     root.appendChild(line);
   }
 
