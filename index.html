@@ -503,10 +503,10 @@
   loading-screen="enabled: false"
 >
   <!-- Floor anchor — fixed at ground level in front of camera -->
-  <a-entity id="quake-grid-root" visible="false"
-    position="0 0 -2"
-    rotation="-90 0 0"
-    scale="1.4 1.4 1.4">
+    <a-entity id="quake-grid-root" visible="false"
+    position="0 -1.5 -2.5"
+    rotation="-15 0 0"
+    scale="2.5 2.5 2.5">
   </a-entity>
 
   <!-- Tap-to-place reticle ring shown on ground -->
@@ -738,7 +738,7 @@ function buildQuakeGrid() {
 
   // ── Floor plane (semi-transparent) ──
   const floor = document.createElement('a-plane');
-  floor.setAttribute('rotation',  '-90 0 0');
+  floor.setAttribute('rotation',  '0 0 0');
   floor.setAttribute('width',     `${w}`);
   floor.setAttribute('height',    `${h}`);
   floor.setAttribute('color',     '#001a0d');
@@ -879,9 +879,9 @@ function initMarkerless() {
       STATE.gridAnchored = true;
 
       // Place grid flat on the virtual floor in camera view
-      root.setAttribute('position', '0 -1.2 -3');
-      root.setAttribute('rotation', '0 0 0');
-      root.setAttribute('scale',    '2 2 2');
+      root.setAttribute('position', '0 -1.5 -2.5');
+      root.setAttribute('rotation', '-15 0 0');
+      root.setAttribute('scale',    '2.5 2.5 2.5');
       root.setAttribute('visible',  'true');
 
       buildQuakeGrid();
