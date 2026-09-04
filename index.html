@@ -1012,6 +1012,8 @@ function _setupXRRenderer(session, THREE) {
 
     // Tap to place — XR select event
     session.addEventListener('select', _onXRSelect);
+    canvas.addEventListener('click', _onXRSelect);
+    canvas.addEventListener('touchend', _onXRSelect);
     session.addEventListener('end', () => {
       _xrSession = null;
       label.textContent = 'AR SESSION ENDED — SWITCH MODE TO RESTART';
@@ -1023,21 +1025,21 @@ function _setupXRRenderer(session, THREE) {
 
     // Render loop
     _xrRenderer.setAnimationLoop((time, frame) => {
-      if (!frame || !_xrRefSpace) return;
-
-      if (_xrHitSrc && !STATE.gridAnchored) {
-        const hits = frame.getHitTestResults(_xrHitSrc);
-        if (hits.length > 0) {
-          const pose = hits[0].getPose(_xrRefSpace);
-          if (pose) {
-            const m = new THREE.Matrix4().fromArray(pose.transform.matrix);
-            _xrReticle.visible = true;
-            _xrReticle.position.setFromMatrixPosition(m);
-            _xrReticle.quaternion.setFromRotationMatrix(m);
-            _xrLastPose = _xrReticle.position.clone();
+      if (frame && _xrRefSpace) {
+        if (_xrHitSrc && !STATE.gridAnchored) {
+          const hits = frame.getHitTestResults(_xrHitSrc);
+          if (hits.length > 0) {
+            const pose = hits[0].getPose(_xrRefSpace);
+            if (pose) {
+              const m = new THREE.Matrix4().fromArray(pose.transform.matrix);
+              _xrReticle.visible = true;
+              _xrReticle.position.setFromMatrixPosition(m);
+              _xrReticle.quaternion.setFromRotationMatrix(m);
+              _xrLastPose = _xrReticle.position.clone();
+            }
+          } else {
+            _xrReticle.visible = false;
           }
-        } else {
-          _xrReticle.visible = false;
         }
       }
 
