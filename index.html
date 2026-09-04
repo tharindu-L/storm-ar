@@ -972,6 +972,7 @@ function _setupXRRenderer(session, THREE) {
   _xrRenderer.setPixelRatio(window.devicePixelRatio);
   _xrRenderer.setSize(window.innerWidth, window.innerHeight);
   _xrRenderer.xr.enabled = true;
+  _xrRenderer.xr.setReferenceSpaceType('local');
 
   _xrRenderer.xr.setSession(session).then(() => {
     // Scene
