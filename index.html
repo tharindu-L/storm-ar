@@ -316,12 +316,14 @@
 ">⬡ ENTER AR</button>
 
 <div id="quake-legend">
-  <div class="leg-title">DEPTH COLOUR</div>
-  <div class="leg-row"><div class="leg-dot" style="background:#00ff44"></div>&lt; 30 km (shallow)</div>
-  <div class="leg-row"><div class="leg-dot" style="background:#ffaa00"></div>30–70 km (mid)</div>
-  <div class="leg-row"><div class="leg-dot" style="background:#ff3300"></div>&gt; 70 km (deep)</div>
-  <div class="leg-title" style="margin-top:6px">SPHERE SIZE</div>
-  <div class="leg-row">radius = magnitude × 0.04</div>
+  <div class="leg-title">SEISMIC HOLOGRAM</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#00ff44"></div>shallow &lt; 30 km</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#ffaa00"></div>mid 30–70 km</div>
+  <div class="leg-row"><div class="leg-dot" style="background:#ff3300"></div>deep &gt; 70 km</div>
+  <div class="leg-title" style="margin-top:6px">HOW TO READ</div>
+  <div class="leg-row">beam height = magnitude</div>
+  <div class="leg-row">near centre = stronger</div>
+  <div class="leg-row">crystal pulse = energy</div>
 </div>
 </div>
 
@@ -918,6 +920,7 @@ let _xrCamera       = null;
 let _xrReticle      = null;
 let _xrGridGroup    = null;
 let _xrLastPose     = null;
+let _xrFieldAnim    = null;
 let _threeReady     = false;
 
 function pauseMarkerPipeline() {
@@ -1136,7 +1139,7 @@ function _setupXRRenderer(session, THREE) {
         _xrHitSrc = src;
       }).catch((e) => console.warn('[STORM] hit-test src failed:', e));
 
-      hint.textContent   = 'POINT AT FLOOR — TAP TO PLACE QUAKE-GRID';
+      hint.textContent   = 'POINT AT A TABLE OR FLOOR — TAP TO PLACE HOLOGRAM';
       hint.style.display = 'block';
       label.textContent  = 'WEBXR ACTIVE — AIM CAMERA AT FLAT SURFACE';
 
@@ -1158,6 +1161,7 @@ function _setupXRRenderer(session, THREE) {
           }
         }
 
+        if (STATE.gridAnchored) _tickQuakeFieldXR(time);
         _xrRenderer.render(_xrScene, _xrCamera);
       });
     };
@@ -1194,64 +1198,379 @@ function _onXRSelect() {
   _buildQuakeGridXR(THREE);
 
   document.getElementById('tap-hint').style.display = 'none';
-  document.getElementById('mode-label').textContent  = 'QUAKE-GRID ANCHORED — MOVE TO EXPLORE';
+  document.getElementById('mode-label').textContent  = 'SEISMIC HOLOGRAM ANCHORED — WALK AROUND IT';
+}
+
+function _xrCssHex(hex) {
+  return '#' + hex.toString(16).padStart(6, '0');
+}
+
+function _xrSetAttr(geo, name, attr) {
+  if (geo.setAttribute) geo.setAttribute(name, attr);
+  else if (geo.addAttribute) geo.addAttribute(name, attr);
+}
+
+function _xrMakeTextSprite(THREE, lines, accentHex, scaleX, scaleY) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 512, 256);
+  ctx.fillStyle = 'rgba(0, 12, 8, 0.78)';
+  ctx.strokeStyle = _xrCssHex(accentHex);
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(16, 16, 480, 224, 18);
+  else ctx.rect(16, 16, 480, 224);
+  ctx.fill();
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const usable = lines.filter(Boolean);
+  usable.forEach((line, i) => {
+    const y = 128 - ((usable.length - 1) * 36) / 2 + i * 48;
+    ctx.fillStyle = i === 0 ? '#ffffff' : _xrCssHex(accentHex);
+    ctx.font = i === 0 ? 'bold 64px monospace' : '32px monospace';
+    ctx.fillText(String(line).slice(0, 28), 256, y);
+  });
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.minFilter = THREE.LinearFilter;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex,
+    transparent: true,
+    depthTest: false,
+    opacity: 0.95
+  }));
+  sprite.scale.set(scaleX, scaleY, 1);
+  sprite.center.set(0.5, 0);
+  return sprite;
+}
+
+function _xrCircleLine(THREE, radius, y, color, opacity) {
+  const pts = [];
+  for (let i = 0; i <= 48; i++) {
+    const a = (i / 48) * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(a) * radius, y, Math.sin(a) * radius));
+  }
+  const mat = new THREE.LineBasicMaterial({
+    color,
+    transparent: true,
+    opacity: opacity == null ? 0.55 : opacity
+  });
+  return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat);
+}
+
+function _tickQuakeFieldXR(timeMs) {
+  if (!_xrFieldAnim) return;
+  const t = (timeMs || 0) * 0.001;
+  const anim = _xrFieldAnim;
+
+  if (anim.beacon) anim.beacon.rotation.y = t * 0.7;
+  if (anim.halo) {
+    anim.halo.rotation.z = t * 0.35;
+    anim.halo.rotation.x = Math.PI / 2 + Math.sin(t * 0.8) * 0.08;
+  }
+  if (anim.scan) {
+    const s = 1 + (t % 2.4) / 2.4 * 1.35;
+    anim.scan.scale.set(s, 1, s);
+    if (anim.scan.material) anim.scan.material.opacity = Math.max(0.04, 0.45 - s * 0.18);
+  }
+  if (anim.corePulse) {
+    const p = 1 + Math.sin(t * 3.2) * 0.08;
+    anim.corePulse.scale.set(p, p, p);
+  }
+
+  if (anim.wave && anim.wave.geometry) {
+    const pos = anim.wave.geometry.attributes && anim.wave.geometry.attributes.position;
+    if (pos) {
+      const n = pos.count;
+      for (let i = 0; i < n; i++) {
+        pos.setY(i, 0.02 + Math.sin(t * 9 + i * 0.45) * 0.012 * (0.4 + Math.sin(t * 1.7) * 0.3));
+      }
+      pos.needsUpdate = true;
+    }
+  }
+
+  anim.nodes.forEach((node) => {
+    const pulse = 0.88 + Math.sin(t * (2.2 + node.mag * 0.15) + node.phase) * 0.12;
+    if (node.beam) {
+      node.beam.scale.y = node.beamH * pulse;
+      node.beam.position.y = (node.beamH * pulse) / 2;
+    }
+    if (node.crystal) {
+      node.crystal.rotation.y = t * (1.1 + node.mag * 0.25);
+      node.crystal.position.y = node.beamH * pulse + node.crystalR;
+    }
+    if (node.ring) {
+      const cycle = ((t * 0.7 + node.phase) % 1.8) / 1.8;
+      const rs = 1 + cycle * 2.2;
+      node.ring.scale.set(rs, 1, rs);
+      if (node.ring.material) node.ring.material.opacity = Math.max(0, 0.5 * (1 - cycle));
+    }
+    if (node.glow) {
+      const g = 1 + Math.sin(t * 4 + node.phase) * 0.18;
+      node.glow.scale.setScalar(node.glowR * g);
+      node.glow.position.y = node.beamH * pulse + node.crystalR;
+      if (node.glow.material) node.glow.material.opacity = 0.12 + Math.sin(t * 4 + node.phase) * 0.06;
+    }
+  });
 }
 
 function _buildQuakeGridXR(THREE) {
   if (!_xrGridGroup || !THREE) return;
   while (_xrGridGroup.children.length) _xrGridGroup.remove(_xrGridGroup.children[0]);
 
-  const cols = CFG.gridCols;
-  const rows = CFG.gridRows;
-  const cs   = CFG.cellSize * 0.4;
-  const w = cols * cs, h = rows * cs;
-  const ox = -w / 2 + cs / 2, oz = -h / 2 + cs / 2;
+  const events = (STATE.quakes || []).slice(0, CFG.gridCols * CFG.gridRows);
+  const tableR = 0.32;
 
-  const floorMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(w, h),
-    new THREE.MeshBasicMaterial({ color: 0x001a0d, transparent: true, opacity: 0.4, side: THREE.DoubleSide })
+  const floor = new THREE.Mesh(
+    new THREE.CircleGeometry(tableR, 48),
+    new THREE.MeshStandardMaterial({
+      color: 0x02140c,
+      emissive: 0x003322,
+      emissiveIntensity: 0.35,
+      transparent: true,
+      opacity: 0.55,
+      roughness: 0.85,
+      metalness: 0.1,
+      side: THREE.DoubleSide
+    })
   );
-  floorMesh.rotation.x = -Math.PI / 2;
-  _xrGridGroup.add(floorMesh);
+  floor.rotation.x = -Math.PI / 2;
+  _xrGridGroup.add(floor);
 
-  const lineMat = new THREE.LineBasicMaterial({ color: 0x00ff88 });
-  for (let i = 0; i <= cols; i++) {
-    const x = -w / 2 + i * cs;
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(tableR, 0.006, 8, 48),
+    new THREE.MeshStandardMaterial({
+      color: 0x00ff88,
+      emissive: 0x00ff88,
+      emissiveIntensity: 0.7,
+      roughness: 0.3
+    })
+  );
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 0.004;
+  _xrGridGroup.add(rim);
+
+  const gridMat = new THREE.LineBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.28 });
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
     _xrGridGroup.add(new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(x, 0.002, -h / 2),
-        new THREE.Vector3(x, 0.002,  h / 2)
-      ]), lineMat
+        new THREE.Vector3(0, 0.003, 0),
+        new THREE.Vector3(Math.cos(a) * tableR, 0.003, Math.sin(a) * tableR)
+      ]),
+      gridMat
     ));
   }
-  for (let j = 0; j <= rows; j++) {
-    const z = -h / 2 + j * cs;
-    _xrGridGroup.add(new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-w / 2, 0.002, z),
-        new THREE.Vector3( w / 2, 0.002, z)
-      ]), lineMat
-    ));
-  }
-
-  STATE.quakes.forEach((feature, idx) => {
-    const props = feature.properties;
-    const geo   = feature.geometry.coordinates;
-    const mag   = props.mag ?? 1;
-    const depth = geo[2]   ?? 10;
-    const col   = idx % cols;
-    const row   = Math.floor(idx / cols);
-    if (row >= rows) return;
-
-    const hexColor = depth < CFG.depthShallow ? 0x00ff44 : depth < CFG.depthMid ? 0xffaa00 : 0xff3300;
-    const r = Math.max(0.015, mag * CFG.sphereScale * 0.4);
-    const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(r, 12, 12),
-      new THREE.MeshStandardMaterial({ color: hexColor, emissive: hexColor, emissiveIntensity: 0.5, roughness: 0.4 })
-    );
-    sphere.position.set(ox + col * cs, r, oz + row * cs);
-    _xrGridGroup.add(sphere);
+  [0.1, 0.18, 0.26].forEach((r, i) => {
+    _xrGridGroup.add(_xrCircleLine(THREE, r, 0.003, 0x00ff88, 0.22 + i * 0.06));
   });
+
+  const scan = _xrCircleLine(THREE, 0.07, 0.006, 0x88ffcc, 0.4);
+  _xrGridGroup.add(scan);
+
+  for (let i = 0; i < 4; i++) {
+    const a = i * Math.PI / 2 + Math.PI / 4;
+    const px = Math.cos(a) * (tableR - 0.012);
+    const pz = Math.sin(a) * (tableR - 0.012);
+    const pylon = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.004, 0.007, 0.05, 6),
+      new THREE.MeshStandardMaterial({
+        color: 0x00ff88,
+        emissive: 0x00ff88,
+        emissiveIntensity: 0.55,
+        roughness: 0.4
+      })
+    );
+    pylon.position.set(px, 0.025, pz);
+    _xrGridGroup.add(pylon);
+    const cap = new THREE.Mesh(
+      new THREE.SphereGeometry(0.008, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xccffee })
+    );
+    cap.position.set(px, 0.054, pz);
+    _xrGridGroup.add(cap);
+  }
+
+  const beacon = new THREE.Group();
+  const coreGeo = new THREE.IcosahedronGeometry(0.028, 0);
+  const core = new THREE.Mesh(
+    coreGeo,
+    new THREE.MeshStandardMaterial({
+      color: 0x66ffcc,
+      emissive: 0x118866,
+      emissiveIntensity: 0.8,
+      metalness: 0.35,
+      roughness: 0.25,
+      transparent: true,
+      opacity: 0.92
+    })
+  );
+  beacon.add(core);
+  const wireGeo = THREE.WireframeGeometry
+    ? new THREE.WireframeGeometry(new THREE.SphereGeometry(0.042, 10, 8))
+    : new THREE.EdgesGeometry(new THREE.SphereGeometry(0.042, 10, 8));
+  const globe = new THREE.LineSegments(
+    wireGeo,
+    new THREE.LineBasicMaterial({ color: 0x88ffdd, transparent: true, opacity: 0.7 })
+  );
+  beacon.add(globe);
+  beacon.position.y = 0.07;
+  _xrGridGroup.add(beacon);
+
+  const halo = new THREE.Mesh(
+    new THREE.TorusGeometry(0.05, 0.0025, 6, 32),
+    new THREE.MeshBasicMaterial({ color: 0x00ffaa, transparent: true, opacity: 0.7 })
+  );
+  halo.position.y = 0.07;
+  _xrGridGroup.add(halo);
+
+  const title = _xrMakeTextSprite(THREE, ['USGS 24H FIELD', `${events.length} EVENTS`], 0x00ff88, 0.22, 0.11);
+  title.position.set(0, 0.175, 0);
+  _xrGridGroup.add(title);
+
+  const waveCount = 40;
+  const waveArr = new Float32Array(waveCount * 3);
+  for (let i = 0; i < waveCount; i++) {
+    const x = -0.16 + (i / (waveCount - 1)) * 0.32;
+    waveArr[i * 3] = x;
+    waveArr[i * 3 + 1] = 0.02;
+    waveArr[i * 3 + 2] = tableR - 0.02;
+  }
+  const waveGeo = new THREE.BufferGeometry();
+  _xrSetAttr(waveGeo, 'position', new THREE.BufferAttribute(waveArr, 3));
+  const wave = new THREE.Line(
+    waveGeo,
+    new THREE.LineBasicMaterial({ color: 0x66ffaa, transparent: true, opacity: 0.85 })
+  );
+  _xrGridGroup.add(wave);
+
+  const ranked = events.slice().sort((a, b) => (b.properties.mag || 0) - (a.properties.mag || 0));
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  const nodes = [];
+  const padGeo = new THREE.CylinderGeometry(0.016, 0.016, 0.003, 12);
+  const CrystalGeo = THREE.OctahedronGeometry || THREE.IcosahedronGeometry || THREE.SphereGeometry;
+  const crystalGeo = new CrystalGeo(1, 0);
+  const glowGeo = new THREE.SphereGeometry(1, 10, 10);
+
+  ranked.forEach((feature, idx) => {
+    const props = feature.properties || {};
+    const coords = feature.geometry && feature.geometry.coordinates ? feature.geometry.coordinates : [0, 0, 10];
+    const mag = Math.max(0.1, props.mag ?? 1);
+    const depth = coords[2] ?? 10;
+    const place = (props.place ?? 'Unknown').replace(/^.+ of /, '');
+    const hexColor = depth < CFG.depthShallow ? 0x00ff44 : depth < CFG.depthMid ? 0xffaa00 : 0xff3300;
+
+    const magN = Math.min(1, mag / 7.5);
+    const orbit = 0.075 + (1 - magN) * 0.18;
+    const theta = idx * golden;
+    const x = Math.cos(theta) * orbit;
+    const z = Math.sin(theta) * orbit;
+
+    const beamH = 0.035 + magN * 0.11;
+    const crystalR = 0.008 + magN * 0.016;
+    const station = new THREE.Group();
+    station.position.set(x, 0, z);
+
+    const pad = new THREE.Mesh(
+      padGeo,
+      new THREE.MeshStandardMaterial({
+        color: 0x022211,
+        emissive: hexColor,
+        emissiveIntensity: 0.25,
+        roughness: 0.7
+      })
+    );
+    pad.position.y = 0.002;
+    station.add(pad);
+
+    const beam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.0018, 0.0045, 1, 8),
+      new THREE.MeshStandardMaterial({
+        color: hexColor,
+        emissive: hexColor,
+        emissiveIntensity: 0.85,
+        transparent: true,
+        opacity: 0.8,
+        roughness: 0.2,
+        metalness: 0.15
+      })
+    );
+    beam.position.y = beamH / 2;
+    beam.scale.y = beamH;
+    station.add(beam);
+
+    const crystal = new THREE.Mesh(
+      crystalGeo,
+      new THREE.MeshStandardMaterial({
+        color: hexColor,
+        emissive: hexColor,
+        emissiveIntensity: 0.9,
+        metalness: 0.45,
+        roughness: 0.18,
+        transparent: true,
+        opacity: 0.95
+      })
+    );
+    crystal.scale.setScalar(crystalR);
+    crystal.position.y = beamH + crystalR;
+    station.add(crystal);
+
+    const glow = new THREE.Mesh(
+      glowGeo,
+      new THREE.MeshBasicMaterial({
+        color: hexColor,
+        transparent: true,
+        opacity: 0.14,
+        depthWrite: false
+      })
+    );
+    glow.scale.setScalar(crystalR * 2.2);
+    glow.position.y = beamH + crystalR;
+    station.add(glow);
+
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.012, 0.016, 20),
+      new THREE.MeshBasicMaterial({
+        color: hexColor,
+        transparent: true,
+        opacity: 0.45,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.004;
+    station.add(ring);
+
+    if (idx < 8) {
+      const label = _xrMakeTextSprite(
+        THREE,
+        [`M${mag.toFixed(1)}`, `${Math.round(depth)} km  ${place}`],
+        hexColor,
+        0.13,
+        0.065
+      );
+      label.position.y = beamH + crystalR * 2 + 0.012;
+      station.add(label);
+    }
+
+    _xrGridGroup.add(station);
+    nodes.push({
+      mag,
+      phase: idx * 0.47,
+      beamH,
+      crystalR,
+      glowR: crystalR * 2.2,
+      beam,
+      crystal,
+      ring,
+      glow
+    });
+  });
+
+  _xrFieldAnim = { beacon, halo, scan, corePulse: core, wave, nodes };
 }
 
 function cleanupMarkerless() {
@@ -1274,7 +1593,7 @@ function cleanupMarkerless() {
   const host = document.getElementById('scene-markerless');
   if (host) host.innerHTML = '';
 
-  _xrHitSrc = _xrScene = _xrCamera = _xrReticle = _xrGridGroup = _xrLastPose = null;
+  _xrHitSrc = _xrScene = _xrCamera = _xrReticle = _xrGridGroup = _xrLastPose = _xrFieldAnim = null;
   _xrHitPending = false;
   STATE.gridAnchored = false;
 }
