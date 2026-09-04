@@ -269,7 +269,7 @@
 
 <div id="mode-label">MODE: WEATHER-GLOBE — AIM AT HIRO MARKER</div>
 <div id="last-update">LAST UPDATE: —</div>
-<div id="tap-hint">TAP SURFACE TO ANCHOR QUAKE-GRID</div>
+<div id="tap-hint">TAP SCREEN TO PLACE QUAKE-GRID</div>
 
 <div id="quake-legend">
   <div class="leg-title">DEPTH COLOUR</div>
@@ -518,10 +518,34 @@
      AR.js surface mode — point camera at floor.
      No WebXR, no ARCore required.
 ═══════════════════════════════════════════ -->
-<!-- SCENE B: pure WebXR immersive-ar, no AR.js -->
-<div id="scene-markerless" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:1;">
-  <canvas id="xr-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%;"></canvas>
-</div>
+<!-- SCENE B: Markerless AR — AR.js camera + device orientation, works on all mobile browsers -->
+<a-scene
+  id="scene-markerless"
+  embedded
+  arjs="sourceType: webcam; debugUIEnabled: false; patternRatio: 0.75;"
+  vr-mode-ui="enabled: false"
+  renderer="logarithmicDepthBuffer: true; colorManagement: true; alpha: true;"
+  loading-screen="enabled: false"
+  style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:1;"
+>
+  <!-- Quake-grid root: positioned 1m in front of camera when anchored -->
+  <a-entity id="quake-grid-root" visible="false" position="0 -0.5 -1.5">
+  </a-entity>
+
+  <!-- Reticle ring shown before anchoring -->
+  <a-entity id="ml-reticle" visible="false" position="0 -0.5 -1.5">
+    <a-torus color="#00ff88" radius="0.12" radius-tubular="0.012"
+      material="emissive:#00ff88;emissiveIntensity:0.8;opacity:0.85;transparent:true;side:double"
+      animation="property: rotation; from: 0 0 0; to: 0 360 0; dur: 2000; loop: true; easing: linear">
+    </a-torus>
+    <a-ring color="#00ff88" radius-inner="0.05" radius-outer="0.09"
+      material="emissive:#00ff88;emissiveIntensity:0.5;opacity:0.5;transparent:true;side:double"
+      rotation="-90 0 0">
+    </a-ring>
+  </a-entity>
+
+  <a-entity camera look-controls="pointerLockEnabled: false" wasd-controls="enabled: false"></a-entity>
+</a-scene>
 
 <!-- ══════════════════════════════════════════
      STORM — Core Logic
@@ -859,210 +883,59 @@ function setMode(mode) {
   }
 }
 
-// ── Markerless — WebXR hit-test ──────────────────────────────────────────────
 // ── Markerless — AR.js camera + device orientation ───────────────────────────
-// ── Markerless — Pure WebXR immersive-ar ──────────────────────────────────────
-let _xrSession = null;
-let _xrRefSpace = null;
-let _xrHitTestSource = null;
-let _xrRenderer = null;
-let _xrScene = null;
-let _xrCamera = null;
-let _xrReticle = null;
-let _xrGridGroup = null;
-let _xrAnimId = null;
+// Works on all modern mobile browsers. No ARCore / WebXR immersive-ar needed.
+// Camera feed is provided by AR.js. The quake grid is placed 1.5 m in front of
+// the camera when the user taps the screen.
 
-async function initMarkerless() {
-  document.getElementById('mode-label').textContent = 'CHECKING WEBXR SUPPORT…';
+function initMarkerless() {
+  // Show reticle ring so user knows where the grid will be placed
+  const reticle = document.getElementById('ml-reticle');
+  if (reticle) reticle.setAttribute('visible', 'true');
 
-  // Load Three.js dynamically only when needed — avoids conflict with AR.js
-  if (!window.THREE) {
-    await new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js';
-      s.onload  = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
-
-  if (!navigator.xr) {
-    showMarkerlessFallback('WEBXR NOT SUPPORTED IN THIS BROWSER');
-    return;
-  }
-
-  const supported = await navigator.xr.isSessionSupported('immersive-ar');
-  if (!supported) {
-    showMarkerlessFallback('IMMERSIVE-AR NOT SUPPORTED ON THIS DEVICE');
-    return;
-  }
-
-  try {
-    _xrSession = await navigator.xr.requestSession('immersive-ar', {
-      requiredFeatures: ['hit-test'],
-      optionalFeatures: ['dom-overlay'],
-      domOverlay: { root: document.getElementById('hud') }
-    });
-  } catch (e) {
-    showMarkerlessFallback('WEBXR SESSION FAILED: ' + e.message);
-    return;
-  }
-
-  // Three.js setup
-  const THREE = window.THREE;
-  if (!THREE) {
-    showMarkerlessFallback('THREE.JS NOT LOADED');
-    return;
-  }
-
-  const canvas = document.getElementById('xr-canvas');
-  _xrRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-  _xrRenderer.setPixelRatio(window.devicePixelRatio);
-  _xrRenderer.setSize(window.innerWidth, window.innerHeight);
-  _xrRenderer.xr.enabled = true;
-  await _xrRenderer.xr.setSession(_xrSession);
-
-  _xrScene = new THREE.Scene();
-  _xrCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-  _xrScene.add(new THREE.AmbientLight(0xffffff, 0.8));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.6);
-  dir.position.set(1, 3, 1);
-  _xrScene.add(dir);
-
-  // Reticle — ring shown on detected surface
-  const reticleGeo  = new THREE.RingGeometry(0.12, 0.16, 32);
-  reticleGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-  const reticleMat  = new THREE.MeshBasicMaterial({ color: 0x00ff88, side: THREE.DoubleSide });
-  _xrReticle = new THREE.Mesh(reticleGeo, reticleMat);
-  _xrReticle.visible = false;
-  _xrScene.add(_xrReticle);
-
-  // Grid group placeholder
-  _xrGridGroup = new THREE.Group();
-  _xrGridGroup.visible = false;
-  _xrScene.add(_xrGridGroup);
-
-  // Hit test source
-  _xrSession.requestReferenceSpace('viewer').then(viewerSpace => {
-    _xrSession.requestHitTestSource({ space: viewerSpace }).then(src => {
-      _xrHitTestSource = src;
-    });
-  });
-
-  _xrRefSpace = await _xrSession.requestReferenceSpace('local');
-
-  // Tap to anchor
-  _xrSession.addEventListener('select', onXRSelect);
-  _xrSession.addEventListener('end', () => { _xrSession = null; });
-
-  document.getElementById('tap-hint').textContent  = 'POINT AT FLOOR — TAP TO PLACE QUAKE-GRID';
+  document.getElementById('tap-hint').textContent   = 'TAP SCREEN TO PLACE QUAKE-GRID';
   document.getElementById('tap-hint').style.display = 'block';
-  document.getElementById('mode-label').textContent = 'WEBXR ACTIVE — AIM AT FLOOR';
+  document.getElementById('mode-label').textContent  = 'MODE: QUAKE-GRID — TAP SCREEN TO ANCHOR';
 
-  // Render loop
-  _xrRenderer.setAnimationLoop((time, frame) => {
-    if (!frame) return;
-
-    if (_xrHitTestSource) {
-      const hits = frame.getHitTestResults(_xrHitTestSource);
-      if (hits.length > 0) {
-        const pose = hits[0].getPose(_xrRefSpace);
-        if (pose) {
-          _xrReticle.visible = true;
-          _xrReticle.position.setFromMatrixPosition(
-            new THREE.Matrix4().fromArray(pose.transform.matrix)
-          );
-        }
-      } else {
-        _xrReticle.visible = false;
-      }
-    }
-
-    _xrRenderer.render(_xrScene, _xrCamera);
-  });
+  // Listen for a single tap on the markerless scene canvas
+  const sceneEl = document.getElementById('scene-markerless');
+  sceneEl._mlTapHandler = onMarkerlessTap;
+  sceneEl.addEventListener('click', sceneEl._mlTapHandler);
+  sceneEl.addEventListener('touchend', sceneEl._mlTapHandler, { passive: true });
 }
 
-function onXRSelect() {
-  if (!_xrReticle.visible || STATE.gridAnchored) return;
+function onMarkerlessTap(e) {
+  if (STATE.gridAnchored) return;
   STATE.gridAnchored = true;
 
-  // Place grid at reticle position
-  _xrGridGroup.position.copy(_xrReticle.position);
-  _xrGridGroup.visible = true;
-  _xrReticle.visible   = false;
+  const reticle   = document.getElementById('ml-reticle');
+  const gridRoot  = document.getElementById('quake-grid-root');
 
-  buildQuakeGridXR(window.THREE);
+  if (reticle)  reticle.setAttribute('visible',  'false');
+  if (gridRoot) gridRoot.setAttribute('visible', 'true');
+
+  // Build the quake grid inside the A-Frame entity
+  buildQuakeGrid();
 
   document.getElementById('tap-hint').style.display  = 'none';
-  document.getElementById('mode-label').textContent  = 'QUAKE-GRID — ANCHORED';
-}
-
-function buildQuakeGridXR(THREE) {
-  // Clear previous
-  while (_xrGridGroup.children.length) _xrGridGroup.remove(_xrGridGroup.children[0]);
-
-  const cols = CFG.gridCols, rows = CFG.gridRows, cs = CFG.cellSize * 0.35;
-  const w = cols * cs, h = rows * cs;
-  const ox = -w / 2 + cs / 2, oz = -h / 2 + cs / 2;
-
-  // Floor
-  const floorGeo = new THREE.PlaneGeometry(w, h);
-  const floorMat = new THREE.MeshBasicMaterial({ color: 0x001a0d, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
-  const floor    = new THREE.Mesh(floorGeo, floorMat);
-  floor.rotation.x = -Math.PI / 2;
-  _xrGridGroup.add(floor);
-
-  // Grid lines
-  const lineMat = new THREE.LineBasicMaterial({ color: 0x00ff88 });
-  for (let i = 0; i <= cols; i++) {
-    const x = -w / 2 + i * cs;
-    const geo = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(x, 0.001, -h / 2),
-      new THREE.Vector3(x, 0.001,  h / 2),
-    ]);
-    _xrGridGroup.add(new THREE.Line(geo, lineMat));
-  }
-  for (let j = 0; j <= rows; j++) {
-    const z = -h / 2 + j * cs;
-    const geo = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(-w / 2, 0.001, z),
-      new THREE.Vector3( w / 2, 0.001, z),
-    ]);
-    _xrGridGroup.add(new THREE.Line(geo, lineMat));
-  }
-
-  // Quake spheres
-  STATE.quakes.forEach((feature, idx) => {
-    const props = feature.properties;
-    const geo   = feature.geometry.coordinates;
-    const mag   = props.mag ?? 1;
-    const depth = geo[2]   ?? 10;
-    const col   = idx % cols;
-    const row   = Math.floor(idx / cols);
-    if (row >= rows) return;
-
-    const color = depth < CFG.depthShallow ? 0x00ff44 : depth < CFG.depthMid ? 0xffaa00 : 0xff3300;
-    const r     = Math.max(0.018, mag * CFG.sphereScale * 0.35);
-    const sGeo  = new THREE.SphereGeometry(r, 10, 10);
-    const sMat  = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5, roughness: 0.5 });
-    const sphere = new THREE.Mesh(sGeo, sMat);
-    sphere.position.set(ox + col * cs, r, oz + row * cs);
-    _xrGridGroup.add(sphere);
-  });
-}
-
-function showMarkerlessFallback(reason) {
-  document.getElementById('mode-label').textContent = reason;
-  document.getElementById('tap-hint').textContent   = 'WEBXR UNAVAILABLE — SEE MODE LABEL';
-  document.getElementById('tap-hint').style.display = 'block';
-  console.warn('[STORM] Markerless fallback:', reason);
+  document.getElementById('mode-label').textContent   = 'QUAKE-GRID ANCHORED — MOVE PHONE TO EXPLORE';
 }
 
 function cleanupMarkerless() {
-  if (_xrSession) { _xrSession.end().catch(() => {}); _xrSession = null; }
-  if (_xrRenderer) { _xrRenderer.setAnimationLoop(null); _xrRenderer = null; }
-  _xrHitTestSource = _xrRefSpace = _xrScene = _xrCamera = _xrReticle = _xrGridGroup = null;
+  const sceneEl = document.getElementById('scene-markerless');
+  if (sceneEl && sceneEl._mlTapHandler) {
+    sceneEl.removeEventListener('click',    sceneEl._mlTapHandler);
+    sceneEl.removeEventListener('touchend', sceneEl._mlTapHandler);
+    sceneEl._mlTapHandler = null;
+  }
+  // Clear any previously built grid children
+  const root = document.getElementById('quake-grid-root');
+  if (root) {
+    while (root.firstChild) root.removeChild(root.firstChild);
+    root.setAttribute('visible', 'false');
+  }
+  const reticle = document.getElementById('ml-reticle');
+  if (reticle) reticle.setAttribute('visible', 'false');
   STATE.gridAnchored = false;
 }
 
