@@ -270,6 +270,24 @@
 <div id="mode-label">MODE: WEATHER-GLOBE — AIM AT HIRO MARKER</div>
 <div id="last-update">LAST UPDATE: —</div>
 <div id="tap-hint">TAP SCREEN TO PLACE QUAKE-GRID</div>
+<button id="enter-ar-btn" onclick="_enterARSession()" style="
+  display: none;
+  position: fixed;
+  bottom: 130px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #00ff8822;
+  border: 1px solid #00ff88;
+  color: #00ff88;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  letter-spacing: 3px;
+  padding: 10px 28px;
+  cursor: pointer;
+  text-transform: uppercase;
+  z-index: 9999;
+  animation: pulse 1.5s infinite;
+">⬡ ENTER AR</button>
 
 <div id="quake-legend">
   <div class="leg-title">DEPTH COLOUR</div>
@@ -838,6 +856,7 @@ function setMode(mode) {
     tapHint.style.display         = 'none';
     legend.style.display          = 'none';
     STATE.gridAnchored            = false;
+    document.getElementById('enter-ar-btn').style.display = 'none';
 
     cleanupMarkerless();
   } else {
@@ -853,8 +872,11 @@ function setMode(mode) {
 }
 
 // ── Markerless — WebXR immersive-ar + hit-test (Three.js) ────────────────────
-// Requires Chrome on Android with ARCore (e.g. Google Pixel 7 Pro).
-// Three.js is loaded on-demand to avoid conflicting with AR.js in marker mode.
+// IMPORTANT: navigator.xr.requestSession() MUST be called directly inside a
+// user-gesture handler with NO awaits before it. This uses a two-phase pattern:
+//   Phase 1 (initMarkerless): pre-load Three.js + check support in background
+//   Phase 2 (_enterARSession): called from "ENTER AR" button click — calls
+//                              requestSession() with nothing awaited before it.
 
 let _xrSession      = null;
 let _xrRefSpace     = null;
@@ -864,142 +886,165 @@ let _xrScene        = null;
 let _xrCamera       = null;
 let _xrReticle      = null;
 let _xrGridGroup    = null;
-let _xrLastPose     = null;   // last valid reticle pose — used as fallback on tap
+let _xrLastPose     = null;
+let _threeReady     = false;   // true once Three.js is loaded
 
+// Phase 1: called when mode switches — pre-loads Three.js, checks support
 async function initMarkerless() {
-  const label = document.getElementById('mode-label');
-  const hint  = document.getElementById('tap-hint');
-  label.textContent = 'LOADING THREE.JS…';
+  const label    = document.getElementById('mode-label');
+  const hint     = document.getElementById('tap-hint');
+  const enterBtn = document.getElementById('enter-ar-btn');
 
-  // ── Load Three.js on demand ──
-  if (!window.THREE) {
-    try {
-      await new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js';
-        s.onload = resolve;
-        s.onerror = reject;
-        document.head.appendChild(s);
-      });
-    } catch (e) {
-      label.textContent = 'FAILED TO LOAD THREE.JS';
-      return;
-    }
-  }
+  hint.style.display     = 'none';
+  enterBtn.style.display = 'none';
+  label.textContent      = 'CHECKING WEBXR SUPPORT…';
 
-  const THREE = window.THREE;
-
-  // ── Check WebXR support ──
+  // Check WebXR availability first (no await needed — it’s fast)
   if (!navigator.xr) {
-    label.textContent = 'WEBXR NOT AVAILABLE — USE CHROME ON ANDROID';
-    hint.textContent  = 'WEBXR UNAVAILABLE';
+    label.textContent = 'WEBXR NOT AVAILABLE — OPEN IN CHROME ON ANDROID';
     return;
   }
 
   const supported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
   if (!supported) {
-    label.textContent = 'IMMERSIVE-AR NOT SUPPORTED — NEEDS ARCORE';
-    hint.textContent  = 'ARCORE REQUIRED';
+    label.textContent = 'IMMERSIVE-AR NOT SUPPORTED — ARCORE REQUIRED';
     return;
   }
 
-  // ── Request XR session ──
-  try {
-    _xrSession = await navigator.xr.requestSession('immersive-ar', {
-      requiredFeatures: ['hit-test'],
-      optionalFeatures: ['dom-overlay'],
-      domOverlay: { root: document.body }
-    });
-  } catch (e) {
-    label.textContent = 'XR SESSION FAILED: ' + e.message;
+  label.textContent = _threeReady ? 'READY — TAP ENTER AR' : 'LOADING THREE.JS…';
+
+  // Load Three.js if not already done
+  if (!window.THREE) {
+    try {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      _threeReady = true;
+    } catch(e) {
+      label.textContent = 'FAILED TO LOAD THREE.JS — CHECK CONNECTION';
+      return;
+    }
+  } else {
+    _threeReady = true;
+  }
+
+  // Show the ENTER AR button — user tapping it IS the user gesture
+  label.textContent      = 'READY — TAP ENTER AR BUTTON BELOW';
+  enterBtn.style.display = 'block';
+}
+
+// Phase 2: called DIRECTLY from the "ENTER AR" button onclick — NO awaits before requestSession
+function _enterARSession() {
+  const label    = document.getElementById('mode-label');
+  const enterBtn = document.getElementById('enter-ar-btn');
+  enterBtn.style.display = 'none';
+  label.textContent = 'STARTING AR SESSION…';
+
+  if (!_threeReady || !window.THREE) {
+    label.textContent = 'THREE.JS NOT READY — SWITCH MODE AND TRY AGAIN';
     return;
   }
 
-  // ── Three.js renderer ──
+  // ── requestSession called DIRECTLY with no preceding awaits — user gesture intact ──
+  navigator.xr.requestSession('immersive-ar', {
+    requiredFeatures: ['hit-test'],
+    optionalFeatures: ['dom-overlay'],
+    domOverlay: { root: document.body }
+  }).then(session => {
+    _xrSession = session;
+    _setupXRRenderer(session, window.THREE);
+  }).catch(e => {
+    label.textContent = 'AR SESSION FAILED: ' + e.message;
+    enterBtn.style.display = 'block'; // let them retry
+  });
+}
+
+// Sets up Three.js renderer + scene after session is granted
+function _setupXRRenderer(session, THREE) {
+  const label  = document.getElementById('mode-label');
+  const hint   = document.getElementById('tap-hint');
   const canvas = document.getElementById('xr-canvas');
+
   _xrRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   _xrRenderer.setPixelRatio(window.devicePixelRatio);
   _xrRenderer.setSize(window.innerWidth, window.innerHeight);
   _xrRenderer.xr.enabled = true;
 
-  try {
-    await _xrRenderer.xr.setSession(_xrSession);
-  } catch(e) {
-    label.textContent = 'XR RENDERER ERROR: ' + e.message;
-    _xrSession.end().catch(() => {});
-    return;
-  }
+  _xrRenderer.xr.setSession(session).then(() => {
+    // Scene
+    _xrScene = new THREE.Scene();
+    _xrCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+    _xrScene.add(new THREE.AmbientLight(0xffffff, 0.9));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+    sun.position.set(1, 3, 2);
+    _xrScene.add(sun);
 
-  // ── Scene & camera ──
-  _xrScene  = new THREE.Scene();
-  _xrCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-  _xrScene.add(new THREE.AmbientLight(0xffffff, 0.9));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.6);
-  dir.position.set(1, 3, 2);
-  _xrScene.add(dir);
+    // Reticle ring (flat on floor)
+    const ringGeo = new THREE.RingGeometry(0.10, 0.15, 36);
+    ringGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+    _xrReticle = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0x00ff88, side: THREE.DoubleSide }));
+    _xrReticle.visible = false;
+    _xrScene.add(_xrReticle);
 
-  // ── Reticle (ring shown on detected surface) ──
-  const ringGeo = new THREE.RingGeometry(0.10, 0.14, 36);
-  ringGeo.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-  _xrReticle = new THREE.Mesh(
-    ringGeo,
-    new THREE.MeshBasicMaterial({ color: 0x00ff88, side: THREE.DoubleSide })
-  );
-  _xrReticle.visible = false;
-  _xrScene.add(_xrReticle);
+    // Grid group (invisible until placed)
+    _xrGridGroup = new THREE.Group();
+    _xrGridGroup.visible = false;
+    _xrScene.add(_xrGridGroup);
 
-  // ── Grid group ──
-  _xrGridGroup = new THREE.Group();
-  _xrGridGroup.visible = false;
-  _xrScene.add(_xrGridGroup);
+    // Hit-test source — using viewer reference space
+    session.requestReferenceSpace('viewer').then(vs => {
+      session.requestHitTestSource({ space: vs }).then(src => {
+        _xrHitSrc = src;
+      }).catch(e => console.warn('[STORM] hit-test src failed:', e));
+    }).catch(e => console.warn('[STORM] viewer space failed:', e));
 
-  // ── Hit-test source ──
-  _xrSession.requestReferenceSpace('viewer').then(viewerSpace => {
-    _xrSession.requestHitTestSource({ space: viewerSpace }).then(src => {
-      _xrHitSrc = src;
-    }).catch(e => console.warn('[STORM] hit-test source error:', e));
-  }).catch(e => console.warn('[STORM] viewer space error:', e));
+    // Local reference space for pose queries
+    session.requestReferenceSpace('local').then(rs => {
+      _xrRefSpace = rs;
+    }).catch(e => {
+      console.warn('[STORM] local ref space failed:', e);
+      label.textContent = 'REF SPACE FAILED: ' + e.message;
+    });
 
-  _xrRefSpace = await _xrSession.requestReferenceSpace('local').catch(() => null);
-  if (!_xrRefSpace) {
-    label.textContent = 'XR REF SPACE FAILED';
-    return;
-  }
+    // Tap to place — XR select event
+    session.addEventListener('select', _onXRSelect);
+    session.addEventListener('end', () => {
+      _xrSession = null;
+      label.textContent = 'AR SESSION ENDED — SWITCH MODE TO RESTART';
+    });
 
-  // ── Select (volume button / tap) → place grid ──
-  _xrSession.addEventListener('select', _onXRSelect);
-  _xrSession.addEventListener('end', () => { _xrSession = null; label.textContent = 'XR SESSION ENDED'; });
+    hint.textContent   = 'POINT AT FLOOR — TAP TO PLACE QUAKE-GRID';
+    hint.style.display = 'block';
+    label.textContent  = 'WEBXR ACTIVE — AIM CAMERA AT FLAT SURFACE';
 
-  // ── Also listen for screen tap on the canvas as backup ──
-  canvas.addEventListener('touchend', _onXRSelect, { passive: true });
-  canvas.addEventListener('click',    _onXRSelect);
+    // Render loop
+    _xrRenderer.setAnimationLoop((time, frame) => {
+      if (!frame || !_xrRefSpace) return;
 
-  hint.textContent  = 'POINT AT FLOOR — TAP TO PLACE QUAKE-GRID';
-  hint.style.display = 'block';
-  label.textContent = 'WEBXR ACTIVE — AIM AT FLAT SURFACE';
-
-  // ── Render loop ──
-  _xrRenderer.setAnimationLoop((time, frame) => {
-    if (!frame) return;
-
-    // Update reticle from hit-test
-    if (_xrHitSrc && !STATE.gridAnchored) {
-      const hits = frame.getHitTestResults(_xrHitSrc);
-      if (hits.length > 0) {
-        const pose = hits[0].getPose(_xrRefSpace);
-        if (pose) {
-          const m = new THREE.Matrix4().fromArray(pose.transform.matrix);
-          _xrReticle.visible = true;
-          _xrReticle.position.setFromMatrixPosition(m);
-          _xrReticle.quaternion.setFromRotationMatrix(m);
-          _xrLastPose = _xrReticle.position.clone(); // remember for fallback
+      if (_xrHitSrc && !STATE.gridAnchored) {
+        const hits = frame.getHitTestResults(_xrHitSrc);
+        if (hits.length > 0) {
+          const pose = hits[0].getPose(_xrRefSpace);
+          if (pose) {
+            const m = new THREE.Matrix4().fromArray(pose.transform.matrix);
+            _xrReticle.visible = true;
+            _xrReticle.position.setFromMatrixPosition(m);
+            _xrReticle.quaternion.setFromRotationMatrix(m);
+            _xrLastPose = _xrReticle.position.clone();
+          }
+        } else {
+          _xrReticle.visible = false;
         }
-      } else {
-        _xrReticle.visible = false;
       }
-    }
 
-    _xrRenderer.render(_xrScene, _xrCamera);
+      _xrRenderer.render(_xrScene, _xrCamera);
+    });
+
+  }).catch(e => {
+    label.textContent = 'RENDERER XR SETUP FAILED: ' + e.message;
   });
 }
 
