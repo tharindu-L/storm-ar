@@ -1,6 +1,6 @@
 'use strict';
 
-// ── Config ──────────────────────────────────────────────────────────────────
+// ── Config ────
 const CFG = {
     // Open-Meteo: Colombo, Sri Lanka as default field location
     // Researchers can modify lat/lon at runtime via URL params
@@ -27,7 +27,7 @@ const CFG = {
     depthMid: 70,
 };
 
-// ── State ────────────────────────────────────────────────────────────────────
+// ── State ─────
 const STATE = {
     mode: 'marker',         // 'marker' | 'markerless'
     weather: null,
@@ -39,7 +39,7 @@ const STATE = {
     reticlePose: null,
 };
 
-// ── WMO weather-code → condition string ──────────────────────────────────────
+// ── WMO weather-code → condition string ──────
 const WMO_CODES = {
     0: 'CLEAR SKY', 1: 'MAINLY CLEAR', 2: 'PARTLY CLOUDY', 3: 'OVERCAST',
     45: 'FOGGY', 48: 'RIME FOG',
@@ -105,7 +105,7 @@ function degToCompass(deg) {
     return dirs[Math.round(deg / 45) % 8];
 }
 
-// ── Data Fetch ───────────────────────────────────────────────────────────────
+// ── Data Fetch ───────
 async function fetchWeather() {
     try {
         const url = CFG.openMeteoUrl(CFG.weatherLat, CFG.weatherLon);
@@ -151,7 +151,7 @@ async function fetchAll() {
         `LAST UPDATE: ${now.toLocaleTimeString()}`;
 }
 
-// ── HUD Updates ──────────────────────────────────────────────────────────────
+// ── HUD Updates ───────
 function updateWeatherHUD() {
     const w = STATE.weather;
     if (!w) return;
@@ -187,7 +187,7 @@ function updateWeatherGlobe() {
     document.getElementById('wg-cond-label').setAttribute('value', wmoToString(w.code));
 }
 
-// ── quake-grid 3D build ──────────────────────────────────────────────────────
+// ── quake-grid 3D build ──────
 function depthColor(depth) {
     if (depth < CFG.depthShallow) return '#00ff44';
     if (depth < CFG.depthMid) return '#ffaa00';
@@ -292,7 +292,7 @@ function buildQuakeGrid() {
     root.setAttribute('visible', 'true');
 }
 
-// ── Mode Toggle ──────────────────────────────────────────────────────────────
+// ── Mode Toggle ───────
 function toggleMode() {
     if (STATE.mode === 'marker') {
         setMode('markerless');
@@ -338,9 +338,7 @@ function setMode(mode) {
     }
 }
 
-// ── Markerless — WebXR immersive-ar + hit-test (Three.js) ────────────────────
-// navigator.xr.requestSession() MUST run inside a user-gesture with no awaits
-// before it. Phase 1 prepares the page; Phase 2 only calls requestSession.
+// ── Markerless — WebXR immersive-ar + hit-test (Three.js) ──
 
 let _xrSession = null;
 let _xrHitSrc = null;
@@ -673,8 +671,6 @@ function _xrMakeTextSprite(THREE, lines, accentHex, scaleX, scaleY) {
         ctx.font = i === 0 ? 'bold 46px monospace' : '26px monospace';
 
         // FIX 2: Add a maxWidth of 440px. 
-        // This forces long location names to compress horizontally and stay inside the 480px wide box.
-        // We can also increase the slice length safely since maxWidth protects the borders.
         ctx.fillText(String(line).slice(0, 35), 256, y, 440);
     });
 
@@ -1043,7 +1039,7 @@ function cleanupMarkerless() {
     STATE.gridAnchored = false;
 }
 
-// ── Boot ─────────────────────────────────────────────────────────────────────
+// ── Boot ─────
 (function boot() {
     // Initial fetch
     fetchAll();
@@ -1069,7 +1065,7 @@ function cleanupMarkerless() {
     // Start in marker mode
     setMode('marker');
 
-    // A-Frame marker tracking → update weather-globe on marker found
+    // A-Frame marker tracking - update weather-globe on marker found
     window.addEventListener('load', () => {
         const scene = document.getElementById('scene-marker');
         const marker = document.getElementById('hiro-marker');
