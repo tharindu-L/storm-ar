@@ -17,9 +17,7 @@
 
 <body>
 
-  <!-- ══════════════════════════════════════════
-       HUD / WebXR DOM overlay (must NOT contain any WebGL canvas)
-  ═══════════════════════════════════════════ -->
+  <!--HUD / WebXR DOM overlay (must NOT contain any WebGL canvas)-->
   <div id="xr-overlay">
     <div id="hud">
       <div id="hud-bar">
@@ -99,11 +97,7 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════
-       SCENE A — MARKER-BASED (weather-globe)
-       Uses AR.js + A-Frame marker tracking.
-       Anchor: Hiro marker.
-  ═══════════════════════════════════════════ -->
+  <!--SCENE A — MARKER-BASED (weather-globe)-->
   <a-scene id="scene-marker" embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false"
     renderer="logarithmicDepthBuffer: true; colorManagement: true; xrEnabled: false;" loading-screen="enabled: false">
@@ -332,11 +326,7 @@
     <a-entity camera></a-entity>
   </a-scene>
 
-  <!-- ══════════════════════════════════════════
-       SCENE B — MARKERLESS (quake-grid)
-       WebXR immersive-ar + hit-test via Three.js
-       Requires: Chrome on Android + ARCore
-  ═══════════════════════════════════════════ -->
+  <!--SCENE B — MARKERLESS (quake-grid)-->
   <div id="scene-markerless" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:1;">
   </div>
 
