@@ -42,7 +42,7 @@ STORM has two AR modes:
 
 1. Open the live site on your phone using **Chrome** - https://tharindu-l.github.io/storm-ar/
 2. Allow camera access when prompted
-3. **Weather-Globe:** show a printed/on-screen **Hiro marker** and point your camera at it
+3. **Weather-Globe:** show a printed/on-screen **Hiro marker** and point your camera at it (HIRO.jpg)
 4. **Quake-Grid:** point your camera at a flat surface (floor or table) and tap to place the grid
 
 Change the weather location with a URL parameter: ?lat=6.9271&lon=79.8612&city=Colombo
