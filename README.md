@@ -3,7 +3,7 @@
 # 🌩️ STORM
 ### Environmental & Seismic Augmented Reality
 
-An AR web app that overlays **live weather** and **earthquake data** onto the real world — right in your mobile browser, no app install needed.
+An AR web app that overlays **live weather** and **earthquake data** onto the real world - right in your mobile browser, no app install needed.
 
 ![Made with A-Frame](https://img.shields.io/badge/A--Frame-1.2.0-EF2D5E?style=flat-square)
 ![AR.js](https://img.shields.io/badge/AR.js-3.4.5-2B7A78?style=flat-square)
@@ -20,7 +20,7 @@ STORM has two AR modes:
 
 | Mode | Trigger | What you see |
 |------|---------|--------------|
-| 🌦️ **Weather-Globe** | Point your camera at a **Hiro marker** | A live 3D weather scene — sun, clouds, rain, or storm — driven by real weather data |
+| 🌦️ **Weather-Globe** | Point your camera at a **Hiro marker** | A live 3D weather scene - sun, clouds, rain, or storm - driven by real weather data |
 | 🌍 **Quake-Grid** | Point your camera at the **floor** | A 3D grid of recent earthquakes, sized by strength and coloured by depth |
 
 ---
@@ -31,8 +31,8 @@ STORM has two AR modes:
 - Uses **A-Frame** + **AR.js** for the marker-based weather scene
 - Uses **WebXR Device API** + **Three.js** for the markerless earthquake grid
 - Pulls live data from:
-  - 🌤️ **Open-Meteo** — weather
-  - 🌋 **USGS** — earthquakes
+  - 🌤️ **Open-Meteo** - weather
+  - 🌋 **USGS** - earthquakes
 - Data refreshes automatically every **30 seconds**
 - Hosted free on **GitHub Pages** over HTTPS (required for camera access)
 
