@@ -1,0 +1,266 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    font-family: 'Courier New', monospace;
+    background: #000;
+    color: #00ff88;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* WebXR camera passthrough fails if the overlay/page stays opaque black */
+html.xr-active,
+html.xr-active body {
+    background: transparent !important;
+}
+
+html.xr-active video,
+html.xr-active canvas.a-canvas,
+html.xr-active #scene-marker {
+    display: none !important;
+}
+
+#xr-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    background: transparent;
+}
+
+/* ── HUD Overlay ── */
+#hud {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+#hud-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.75);
+    border-bottom: 1px solid #00ff8844;
+    padding: 8px 14px;
+    pointer-events: all;
+}
+
+#hud-title {
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: #00ff88;
+    text-transform: uppercase;
+}
+
+#location-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    margin-right: 12px;
+}
+
+#location-search {
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid #00ff8844;
+    color: #00ff88;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 6px 10px;
+    width: min(280px, 32vw);
+    min-width: 160px;
+    outline: none;
+}
+
+#location-search::placeholder {
+    color: #00ff8877;
+}
+
+#location-search-btn,
+#mode-toggle {
+    background: #00ff8822;
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 5px 12px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.2s;
+}
+
+#location-search-btn,
+#mode-toggle,
+#enter-ar-btn,
+#location-search {
+    pointer-events: auto;
+}
+
+#location-search-btn:hover,
+#mode-toggle:hover {
+    background: #00ff8844;
+}
+
+#data-panel {
+    display: flex;
+    gap: 10px;
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.6);
+    border-bottom: 1px solid #00ff8822;
+    flex-wrap: wrap;
+    pointer-events: none;
+}
+
+.data-card {
+    background: rgba(0, 255, 136, 0.05);
+    border: 1px solid #00ff8833;
+    padding: 6px 10px;
+    min-width: 120px;
+    flex: 1;
+}
+
+.data-card .label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #00ff8899;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+
+.data-card .value {
+    font-size: 14px;
+    color: #00ff88;
+}
+
+.data-card .sub {
+    font-size: 10px;
+    color: #00ff8877;
+    margin-top: 2px;
+}
+
+/* status dot */
+#status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #00ff88;
+    margin-right: 6px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.2;
+    }
+}
+
+#mode-label {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid #00ff8844;
+    color: #00ff8899;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 5px 14px;
+    text-transform: uppercase;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+#last-update {
+    position: fixed;
+    bottom: 56px;
+    right: 14px;
+    font-size: 9px;
+    color: #00ff8855;
+    z-index: 9999;
+    letter-spacing: 1px;
+}
+
+/* ── Scenes ── */
+#scene-marker,
+#scene-markerless {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#scene-markerless {
+    display: none;
+}
+
+/* markerless tap hint */
+#tap-hint {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid #00ff8844;
+    color: #00ff88aa;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 5px 14px;
+    z-index: 9999;
+    display: none;
+    text-transform: uppercase;
+}
+
+/* quake legend */
+#quake-legend {
+    position: fixed;
+    top: 110px;
+    right: 14px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid #00ff8833;
+    padding: 8px 12px;
+    z-index: 9999;
+    display: none;
+    pointer-events: none;
+}
+
+#quake-legend .leg-title {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #00ff8888;
+    margin-bottom: 6px;
+}
+
+.leg-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    color: #00ff8877;
+    margin-bottom: 3px;
+}
+
+.leg-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
