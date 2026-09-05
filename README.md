@@ -40,7 +40,7 @@ STORM has two AR modes:
 
 ## 📱 How to use it
 
-1. Open the live site on your phone using **Chrome**
+1. Open the live site on your phone using **Chrome** - [https://tharindu-l.github.io/storm-ar/](url)
 2. Allow camera access when prompted
 3. **Weather-Globe:** show a printed/on-screen **Hiro marker** and point your camera at it
 4. **Quake-Grid:** point your camera at a flat surface (floor or table) and tap to place the grid
